@@ -166,6 +166,25 @@ The collision system uses a multi-step approach:
    - **Bottom collision**: Set character.y = obstacle.y + obstacle.height, set velocityY = 0 (bump head)
 4. **State Update**: Update character's isOnGround and isJumping flags based on collision type
 
+### Obstacle Placement Algorithm
+
+To prevent obstacles from overlapping with doors (Requirement 12), the `generateObstacles` function in `LevelManager` uses a restricted zone approach:
+
+1. **Define Restricted Zone**: The door's x-position defines a restricted zone where obstacles cannot be placed
+   - Restricted zone extends from `doorX - clearance` to `doorX + doorWidth + clearance`
+   - Minimum clearance of 100 pixels ensures door accessibility
+2. **Calculate Available Space**: Obstacles are placed in the horizontal space from level start to the restricted zone
+   - Available space: `startX` to `doorX - clearance`
+3. **Distribute Obstacles**: Obstacles are evenly distributed within the available space
+   - Calculate spacing based on obstacle count and available width
+   - Ensure minimum spacing requirements are met
+4. **Validation**: Each obstacle position is validated to ensure:
+   - No overlap with door bounding box
+   - Minimum clearance distance maintained
+   - Obstacle remains within level boundaries
+
+This approach ensures the door remains accessible and visible without obstruction while maintaining the level's difficulty progression.
+
 ## Data Models
 
 ### Level Configuration
@@ -451,6 +470,18 @@ ss Properties
 *For any* game state during active play, the level banner should remain visible (rendered) throughout the level.
 
 **Validates: Requirements 1.3**
+
+### Property 28: Obstacles do not overlap with door
+
+*For any* level with obstacles and a door, no obstacle's bounding box should overlap with the door's bounding box.
+
+**Validates: Requirements 12.1, 12.3**
+
+### Property 29: Door maintains minimum clearance from obstacles
+
+*For any* level with obstacles and a door, all obstacles should maintain a minimum clearance distance from the door position.
+
+**Validates: Requirements 12.2, 12.4**
 
 ## Error Handling
 

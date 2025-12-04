@@ -155,3 +155,14 @@ This feature extends the Tip of the Iceberg game by transforming it into a multi
 3. WHEN updating physics THEN the Game System SHALL integrate with the existing game loop
 4. WHEN rendering THEN the Game System SHALL use the existing SceneRenderer architecture
 5. WHEN detecting collisions THEN the Game System SHALL extend the existing CollisionDetector
+
+### Requirement 12
+
+**User Story:** As a player, I want obstacles and doors to be placed without overlapping, so that I can navigate levels without encountering blocked or inaccessible exits.
+
+#### Acceptance Criteria
+
+1. WHEN a level initializes THEN the Game System SHALL place obstacles such that they do not overlap with the door position
+2. WHEN generating obstacles THEN the Game System SHALL maintain a minimum clearance distance from the door
+3. WHEN the door is placed THEN the Game System SHALL ensure it remains accessible without obstacle obstruction
+4. WHEN calculating obstacle positions THEN the Game System SHALL consider the door's horizontal position as a restricted zone

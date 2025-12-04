@@ -126,6 +126,23 @@
   - **Property 16: Chalice only on final level**
   - **Validates: Requirements 6.3**
 
+- [x] 8.6 Update generateObstacles to prevent door overlap
+  - Modify generateObstacles() method to consider door position when placing obstacles
+  - Define restricted zone around door position (doorX - clearance to doorX + doorWidth + clearance)
+  - Calculate available space for obstacles (startX to doorX - clearance)
+  - Distribute obstacles within available space while maintaining minimum spacing
+  - Validate each obstacle position to ensure no overlap with door bounding box
+  - Ensure minimum clearance distance (100 pixels) is maintained from door
+  - _Requirements: 12.1, 12.2, 12.3, 12.4_
+
+- [ ]* 8.7 Write property test for obstacle-door non-overlap
+  - **Property 28: Obstacles do not overlap with door**
+  - **Validates: Requirements 12.1, 12.3**
+
+- [ ]* 8.8 Write property test for door clearance
+  - **Property 29: Door maintains minimum clearance from obstacles**
+  - **Validates: Requirements 12.2, 12.4**
+
 - [ ] 9. Extend CollisionDetector for solid obstacle collisions
   - Add checkObstacleCollision() method that detects collision side (left, right, top, bottom)
   - Add resolveLeftCollision() method to prevent rightward passage through obstacles

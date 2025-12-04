@@ -174,7 +174,7 @@ export class LevelManager {
 
   /**
    * Generate obstacles for a level based on configuration
-   * Requirements: 3.1, 3.3, 3.5, 5.3
+   * Requirements: 3.1, 3.3, 3.5, 5.3, 12.1, 12.2, 12.3, 12.4
    * 
    * @param level - The level number
    * @returns Array of obstacles
@@ -184,13 +184,26 @@ export class LevelManager {
     const obstacles: Obstacle[] = [];
     const groundY = PHYSICS_CONSTANTS.GROUND_Y;
 
-    // Calculate available horizontal space
+    // Define clearance distance from door (Requirement 12.2, 12.4)
+    const minClearance = 100; // Minimum clearance distance from door
+
+    // Define restricted zone around door (Requirement 12.4)
+    const doorX = config.doorPosition.x;
+    const restrictedZoneStart = doorX - minClearance;
+
+    // Calculate available horizontal space (Requirement 12.1)
     const startX = 100; // Start obstacles after some space
-    const endX = config.doorPosition.x - 100; // End before door
+    const endX = restrictedZoneStart; // End before restricted zone
     const availableWidth = endX - startX;
 
+    // Validate there's enough space for obstacles
+    if (availableWidth <= 0) {
+      return obstacles; // Not enough space, return empty array
+    }
+
     // Calculate spacing between obstacles
-    const totalObstacleWidth = config.obstacleCount * ((config.obstacleWidthRange[0] + config.obstacleWidthRange[1]) / 2);
+    const avgObstacleWidth = (config.obstacleWidthRange[0] + config.obstacleWidthRange[1]) / 2;
+    const totalObstacleWidth = config.obstacleCount * avgObstacleWidth;
     const totalSpacing = availableWidth - totalObstacleWidth;
     const spacing = Math.max(config.obstacleMinSpacing, totalSpacing / (config.obstacleCount + 1));
 
@@ -206,6 +219,13 @@ export class LevelManager {
       // Position on ground
       const x = currentX;
       const y = groundY - height;
+
+      // Validate obstacle doesn't overlap with restricted zone (Requirement 12.1, 12.3)
+      const obstacleEnd = x + width;
+      if (obstacleEnd > restrictedZoneStart) {
+        // Obstacle would enter restricted zone, skip it
+        break;
+      }
 
       // Validate obstacle is jumpable (Requirement 3.3)
       const maxJumpHeight = Math.abs(PHYSICS_CONSTANTS.JUMP_STRENGTH) * Math.abs(PHYSICS_CONSTANTS.JUMP_STRENGTH) / (2 * PHYSICS_CONSTANTS.GRAVITY);
