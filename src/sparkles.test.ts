@@ -3,7 +3,7 @@
  * Uses fast-check for property-based testing
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it } from 'vitest';
 import * as fc from 'fast-check';
 import { SparkleSystem } from './sparkles';
 import { GhostCharacter } from './models';

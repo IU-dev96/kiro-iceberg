@@ -8,11 +8,9 @@
  */
 let sharkImage: HTMLImageElement | null = null;
 let sharkImageLoaded: boolean = false;
-let sharkImageError: boolean = false;
 
 let fishImage: HTMLImageElement | null = null;
 let fishImageLoaded: boolean = false;
-let fishImageError: boolean = false;
 
 /**
  * Load the shark image sprite
@@ -27,7 +25,6 @@ export function loadSharkImage(): void {
     sharkImageLoaded = true;
   };
   sharkImage.onerror = () => {
-    sharkImageError = true;
     console.warn('Failed to load shark image, using fallback rendering');
   };
   // Use local asset to avoid CORS issues
@@ -46,7 +43,6 @@ export function loadFishImage(): void {
     fishImageLoaded = true;
   };
   fishImage.onerror = () => {
-    fishImageError = true;
     console.warn('Failed to load fish image, using fallback rendering');
   };
   // Use local asset to avoid CORS issues
