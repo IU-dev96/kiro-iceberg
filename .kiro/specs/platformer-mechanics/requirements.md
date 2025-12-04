@@ -107,15 +107,17 @@ This feature extends the Tip of the Iceberg game by transforming it into a multi
 
 ### Requirement 8
 
-**User Story:** As a player, I want obstacles to have collision detection, so that I must successfully jump over them.
+**User Story:** As a player, I want obstacles to have solid collision detection, so that I cannot pass through them and must successfully jump over them.
 
 #### Acceptance Criteria
 
-1. WHEN the Ghost Character touches an obstacle from the side THEN the Game System SHALL prevent horizontal movement through the obstacle
-2. WHEN the Ghost Character lands on top of an obstacle THEN the Game System SHALL treat the obstacle top as a solid surface
-3. WHEN the Ghost Character jumps over an obstacle THEN the Game System SHALL allow passage without collision
-4. WHEN checking collisions THEN the Game System SHALL evaluate obstacle boundaries accurately
-5. WHEN a collision occurs THEN the Game System SHALL resolve it without allowing the Ghost Character to pass through
+1. WHEN the Ghost Character touches an obstacle from the left side THEN the Game System SHALL prevent further rightward movement and stop the character at the obstacle's left edge
+2. WHEN the Ghost Character touches an obstacle from the right side THEN the Game System SHALL prevent further leftward movement and stop the character at the obstacle's right edge
+3. WHEN the Ghost Character lands on top of an obstacle THEN the Game System SHALL treat the obstacle top as a solid surface and stop downward movement
+4. WHEN the Ghost Character is standing on top of an obstacle THEN the Game System SHALL prevent the character from falling through the obstacle
+5. WHEN the Ghost Character jumps over an obstacle THEN the Game System SHALL allow passage without collision
+6. WHEN checking collisions THEN the Game System SHALL evaluate obstacle boundaries accurately using axis-aligned bounding box detection
+7. WHEN a collision occurs THEN the Game System SHALL resolve it by adjusting the character's position to prevent overlap
 
 ### Requirement 9
 

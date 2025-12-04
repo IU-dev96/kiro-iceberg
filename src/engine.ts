@@ -297,13 +297,13 @@ export class GameEngine {
         // Check ground collision
         this.physicsSystem.checkGroundCollision(this.character, PHYSICS_CONSTANTS.GROUND_Y);
 
+        // Check collisions (obstacles)
+        this.checkCollisions();
+
         // Update sea creatures
         for (const creature of this.seaCreatures) {
           creature.update(deltaTime, this.canvas.width);
         }
-
-        // Check collisions
-        this.checkCollisions();
       }
     } else if (this.gameStatus === 'won') {
       // Update fireworks
@@ -313,13 +313,12 @@ export class GameEngine {
 
   /**
    * Check all collisions
-   * Requirements: 3.2, 4.3, 6.2, 8.1, 8.2
+   * Requirements: 3.2, 4.3, 6.2, 8.1, 8.2, 8.3, 8.4, 8.7
    */
   private checkCollisions(): void {
-    // Check obstacle collisions (Requirements 3.2, 8.1, 8.2)
-    for (const obstacle of this.obstacles) {
-      this.physicsSystem.resolveCollision(this.character, obstacle);
-    }
+    // Check all obstacle collisions with solid collision resolution
+    // Requirements: 8.1, 8.2, 8.3, 8.4, 8.7
+    this.physicsSystem.checkObstacleCollisions(this.character, this.obstacles);
 
     // Check door interaction (Requirement 4.3)
     if (this.door) {
