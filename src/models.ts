@@ -99,6 +99,10 @@ export class GhostCharacter {
   velocity: number;
   currentLevel: number;
   facingDirection: 'left' | 'right';
+  currentRotationY: number;
+  targetRotationY: number;
+  rotationAnimationProgress: number;
+  rotationAnimationDuration: number;
   private canvasWidth: number;
 
   constructor(
@@ -118,6 +122,10 @@ export class GhostCharacter {
     this.canvasWidth = canvasWidth;
     this.currentLevel = currentLevel;
     this.facingDirection = 'right'; // Default facing direction (Requirement 1.4)
+    this.currentRotationY = 0; // 0 radians = facing right (Requirement 4.5)
+    this.targetRotationY = 0;
+    this.rotationAnimationProgress = 1; // 1 = animation complete
+    this.rotationAnimationDuration = 0.5; // 500ms
   }
 
   /**
@@ -131,6 +139,14 @@ export class GhostCharacter {
   move(direction: 'left' | 'right', deltaTime: number): void {
     // Update facing direction (Requirements 1.1, 1.2, 2.2)
     this.facingDirection = direction;
+    
+    // Set target rotation and start animation (Requirements 4.1, 4.4)
+    const newTargetRotation = direction === 'left' ? Math.PI : 0;
+    if (this.targetRotationY !== newTargetRotation) {
+      this.targetRotationY = newTargetRotation;
+      // Start new animation from current state (handles rapid direction changes)
+      this.rotationAnimationProgress = 0;
+    }
     
     const distance = this.velocity * deltaTime;
 
@@ -200,6 +216,41 @@ export class GhostCharacter {
    */
   getFacingDirection(): 'left' | 'right' {
     return this.facingDirection;
+  }
+
+  /**
+   * Get the current Y-axis rotation angle for rendering
+   * Requirement 4.2: Provide rotation angle for intermediate rendering
+   * 
+   * @returns The current Y-axis rotation in radians
+   */
+  getRotationY(): number {
+    return this.currentRotationY;
+  }
+
+  /**
+   * Update rotation animation
+   * Requirements 4.1, 4.2, 4.3: Animate rotation over 150ms with interpolation
+   * 
+   * @param deltaTime - Time elapsed since last frame in seconds
+   */
+  update(deltaTime: number): void {
+    // Animate rotation if not complete
+    if (this.rotationAnimationProgress < 1) {
+      // Store start rotation before updating progress
+      const startRotation = this.currentRotationY;
+      
+      // Advance animation progress (Requirement 4.1)
+      this.rotationAnimationProgress += deltaTime / this.rotationAnimationDuration;
+      this.rotationAnimationProgress = Math.min(1, this.rotationAnimationProgress); // Clamp to [0, 1] (Requirement 4.2)
+      
+      // Cubic ease-out interpolation for smooth animation
+      const t = this.rotationAnimationProgress;
+      const eased = 1 - Math.pow(1 - t, 3);
+      
+      // Interpolate between start and target (Requirement 4.3)
+      this.currentRotationY = startRotation + (this.targetRotationY - startRotation) * eased;
+    }
   }
 }
 

@@ -154,7 +154,7 @@ export class SceneRenderer {
   /**
    * Draw the ghost character with visual properties
    * Requirement 1.2: Show the Ghost Character with distinct visual appearance
-   * Requirements 3.1, 3.2, 3.3, 3.4: Apply horizontal flipping based on facing direction
+   * Requirements 3.1, 3.4, 4.2: Apply Y-axis rotation based on animation state
    * 
    * @param context - The canvas rendering context
    * @param character - The ghost character to draw
@@ -162,14 +162,15 @@ export class SceneRenderer {
   drawCharacter(context: CanvasRenderingContext2D, character: GhostCharacter): void {
     context.save();
 
-    // Apply horizontal flip if facing left (Requirements 3.1, 3.2)
-    const facingDirection = character.getFacingDirection();
-    if (facingDirection === 'left') {
-      // Flip horizontally: translate to character position, scale -1 on x-axis, then offset
-      context.translate(character.x + character.width, character.y);
-      context.scale(-1, 1);
-      context.translate(-character.x, -character.y);
-    }
+    // Apply Y-axis rotation for smooth direction change animation (Requirements 3.1, 4.2)
+    const rotationY = character.getRotationY();
+    const centerX = character.x + character.width / 2;
+    const centerY = character.y + character.height / 2;
+    
+    // Translate to center, apply rotation via X-axis scaling, translate back
+    context.translate(centerX, centerY);
+    context.scale(Math.cos(rotationY), 1); // Y-axis rotation effect
+    context.translate(-centerX, -centerY);
 
     if (this.imageLoaded && this.ghostImage) {
       // Draw the Kiro ghost icon

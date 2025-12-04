@@ -2,12 +2,13 @@
 
 ## Overview
 
-This feature adds directional facing to the Kiro ghost character in the Tip of the Iceberg game. The implementation involves two main changes:
+This feature adds directional facing with smooth rotation animation to the Kiro ghost character in the Tip of the Iceberg game. The implementation involves three main changes:
 
-1. **State Management**: Add a `facingDirection` property to the `GhostCharacter` class that tracks whether Kiro is facing left or right
-2. **Visual Rendering**: Modify the `SceneRenderer.drawCharacter()` method to flip the sprite horizontally when facing left
+1. **State Management**: Add rotation state properties to the `GhostCharacter` class that track current rotation angle, target angle, and animation timing
+2. **Animation Logic**: Implement rotation interpolation in the `GhostCharacter.update()` method to smoothly transition between facing directions over 150ms
+3. **Visual Rendering**: Modify the `SceneRenderer.drawCharacter()` method to apply Y-axis rotation based on the current rotation angle
 
-The design maintains separation of concerns by keeping the facing direction as part of the character's state while delegating the visual transformation to the rendering layer.
+The design maintains separation of concerns by keeping the rotation state and animation logic in the character model while delegating the visual transformation to the rendering layer.
 
 ## Architecture
 
@@ -18,11 +19,13 @@ The feature follows the existing architecture pattern where:
 ### Component Interaction Flow
 
 ```
-Player Input → GhostCharacter.move(direction) → Update facingDirection
+Player Input → GhostCharacter.move(direction) → Set target rotation angle
+                                                ↓
+                        Game Loop → GhostCharacter.update(deltaTime) → Interpolate rotation
                                                 ↓
                                     SceneRenderer.drawCharacter(character)
                                                 ↓
-                                    Apply horizontal flip if facing left
+                                    Apply Y-axis rotation based on current angle
                                                 ↓
                                     Render sprite to canvas
 ```
@@ -31,27 +34,45 @@ Player Input → GhostCharacter.move(direction) → Update facingDirection
 
 ### GhostCharacter Class Modifications
 
-**New Property:**
+**New Properties:**
 ```typescript
 facingDirection: 'left' | 'right'
+currentRotationY: number  // Current Y-axis rotation in radians (0 = right, PI = left)
+targetRotationY: number   // Target Y-axis rotation in radians
+rotationAnimationProgress: number  // Progress from 0 to 1
+rotationAnimationDuration: number  // Duration in seconds (0.15s = 150ms)
 ```
 
 **Modified Constructor:**
 - Initialize `facingDirection` to `'right'` by default (Requirement 1.4)
+- Initialize `currentRotationY` to `0` (facing right)
+- Initialize `targetRotationY` to `0`
+- Initialize `rotationAnimationProgress` to `1` (no animation in progress)
+- Set `rotationAnimationDuration` to `0.15` seconds
 
 **Modified Method:**
-- `move(direction: 'left' | 'right', deltaTime: number)`: Update `facingDirection` when called (Requirement 2.2)
+- `move(direction: 'left' | 'right', deltaTime: number)`: Update `facingDirection` and set `targetRotationY`, reset animation progress (Requirements 2.2, 4.1, 4.4)
 
-**New Method:**
+**New Methods:**
 ```typescript
 getFacingDirection(): 'left' | 'right'
 ```
 Returns the current facing direction (Requirement 2.3)
 
+```typescript
+update(deltaTime: number): void
+```
+Updates rotation animation, interpolating `currentRotationY` toward `targetRotationY` (Requirements 4.1, 4.2, 4.3)
+
+```typescript
+getRotationY(): number
+```
+Returns the current Y-axis rotation angle for rendering (Requirement 4.2)
+
 ### SceneRenderer Class Modifications
 
 **Modified Method:**
-- `drawCharacter(context: CanvasRenderingContext2D, character: GhostCharacter)`: Apply canvas transformations based on `character.getFacingDirection()` (Requirements 3.1, 3.2, 3.3, 3.4)
+- `drawCharacter(context: CanvasRenderingContext2D, character: GhostCharacter)`: Apply Y-axis rotation transformation based on `character.getRotationY()` (Requirements 3.1, 3.4, 4.2)
 
 ## Data Models
 
@@ -71,23 +92,68 @@ The `GhostCharacter` class will be extended with:
 class GhostCharacter {
   // ... existing properties
   facingDirection: FacingDirection;
+  currentRotationY: number;
+  targetRotationY: number;
+  rotationAnimationProgress: number;
+  rotationAnimationDuration: number;
   
   constructor(/* existing params */) {
     // ... existing initialization
-    this.facingDirection = 'right'; // Default facing direction
+    this.facingDirection = 'right';
+    this.currentRotationY = 0; // 0 radians = facing right
+    this.targetRotationY = 0;
+    this.rotationAnimationProgress = 1; // 1 = animation complete
+    this.rotationAnimationDuration = 0.15; // 150ms
   }
   
   move(direction: 'left' | 'right', deltaTime: number): void {
-    // Update facing direction
+    // Update facing direction and target rotation
     this.facingDirection = direction;
+    this.targetRotationY = direction === 'left' ? Math.PI : 0;
+    
+    // Start new animation from current state (handles rapid direction changes)
+    if (this.currentRotationY !== this.targetRotationY) {
+      this.rotationAnimationProgress = 0;
+    }
+    
     // ... existing movement logic
+  }
+  
+  update(deltaTime: number): void {
+    // Animate rotation if not complete
+    if (this.rotationAnimationProgress < 1) {
+      this.rotationAnimationProgress += deltaTime / this.rotationAnimationDuration;
+      this.rotationAnimationProgress = Math.min(1, this.rotationAnimationProgress);
+      
+      // Ease-out interpolation for smooth animation
+      const t = this.rotationAnimationProgress;
+      const eased = 1 - Math.pow(1 - t, 3); // cubic ease-out
+      
+      // Interpolate between current and target
+      const startRotation = this.currentRotationY;
+      this.currentRotationY = startRotation + (this.targetRotationY - startRotation) * eased;
+    }
   }
   
   getFacingDirection(): FacingDirection {
     return this.facingDirection;
   }
+  
+  getRotationY(): number {
+    return this.currentRotationY;
+  }
 }
 ```
+
+### Animation Algorithm
+
+The rotation animation uses **cubic ease-out** interpolation for a natural feel:
+1. When direction changes, `targetRotationY` is set (0 for right, π for left)
+2. Each frame, `rotationAnimationProgress` advances based on `deltaTime`
+3. Current rotation interpolates from start to target using ease-out curve
+4. Animation completes when progress reaches 1.0
+
+This approach handles rapid direction changes by starting new animations from the current rotation state, creating smooth transitions even when interrupted.
 
 
 ## Correctness Properties
@@ -105,6 +171,18 @@ class GhostCharacter {
 *For any* GhostCharacter instance with a current facing direction, if no move method is called, the facing direction should remain unchanged.
 
 **Validates: Requirements 1.3**
+
+### Property 3: Rotation animation converges to target
+
+*For any* GhostCharacter instance with a target rotation different from current rotation, repeatedly calling update() with positive deltaTime should eventually result in currentRotationY equaling targetRotationY (within floating point tolerance).
+
+**Validates: Requirements 4.1, 4.3**
+
+### Property 4: Animation progress is bounded
+
+*For any* GhostCharacter instance, the rotationAnimationProgress should always be between 0 and 1 inclusive, regardless of deltaTime values passed to update().
+
+**Validates: Requirements 4.2**
 
 ## Error Handling
 

@@ -209,6 +209,9 @@ export class GameEngine {
     // Update input handler
     this.inputHandler.update();
 
+    // Update character animation (Requirements 4.1, 4.2, 4.3)
+    this.character.update(deltaTime);
+
     // Only update gameplay if in playing state
     if (this.gameStatus === 'playing') {
       // Handle character movement

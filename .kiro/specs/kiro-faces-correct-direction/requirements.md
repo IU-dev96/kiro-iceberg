@@ -12,6 +12,8 @@ This feature enhances the visual feedback of the Tip of the Iceberg game by maki
 - **Sprite Flipping**: The technique of horizontally mirroring a character image to face the opposite direction
 - **Rendering Context**: The HTML5 Canvas 2D rendering context used to draw game graphics
 - **GhostCharacter**: The class representing Kiro's state and behavior in the game code
+- **Rotation Animation**: A smooth visual transition that interpolates the character's facing angle over time
+- **Animation Duration**: The time period over which the rotation animation completes, measured in milliseconds
 
 ## Requirements
 
@@ -46,3 +48,15 @@ This feature enhances the visual feedback of the Tip of the Iceberg game by maki
 2. WHEN the facing direction is left, THE SceneRenderer SHALL flip the sprite horizontally using canvas transformations
 3. WHEN the facing direction is right, THE SceneRenderer SHALL render the sprite in its default orientation
 4. THE SceneRenderer SHALL restore the canvas context state after applying transformations
+
+### Requirement 4
+
+**User Story:** As a player, I want Kiro's direction change to be animated smoothly, so that the visual transition feels polished and natural.
+
+#### Acceptance Criteria
+
+1. WHEN Kiro changes facing direction, THE GhostCharacter SHALL animate the rotation over a duration of 150 milliseconds
+2. WHILE the rotation animation is in progress, THE SceneRenderer SHALL render Kiro at intermediate rotation angles
+3. WHEN the rotation animation completes, THE GhostCharacter SHALL be fully facing the new direction
+4. WHEN Kiro changes direction multiple times rapidly, THE System SHALL interrupt the current animation and start a new animation from the current rotation state
+5. THE GhostCharacter SHALL track the current rotation angle and target rotation angle as part of its state
