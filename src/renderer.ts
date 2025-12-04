@@ -5,6 +5,7 @@
  */
 
 import { GhostCharacter, Trapdoor, Chalice, Particle, Obstacle, Door, SeaCreature } from './models';
+import { SparkleParticle } from './sparkles';
 
 /**
  * SceneRenderer class manages all drawing operations for the game
@@ -817,6 +818,40 @@ export class SceneRenderer {
     context.font = '28px Arial';
     context.fillText('Press ENTER to restart', this.canvasWidth / 2, this.canvasHeight / 2 + 40);
 
+    context.restore();
+  }
+
+  /**
+   * Draw sparkle particles
+   * Requirements: 2.4, 3.2: Display sparkles with appropriate color and opacity
+   * 
+   * @param context - The canvas rendering context
+   * @param sparkles - Array of sparkle particles
+   */
+  drawSparkles(context: CanvasRenderingContext2D, sparkles: SparkleParticle[]): void {
+    context.save();
+
+    for (const sparkle of sparkles) {
+      // Calculate opacity from life/maxLife ratio
+      const opacity = sparkle.life / sparkle.maxLife;
+      
+      // Set color with opacity
+      context.fillStyle = sparkle.color;
+      context.globalAlpha = opacity;
+      
+      // Draw sparkle as a circle
+      context.beginPath();
+      context.arc(sparkle.x, sparkle.y, sparkle.size, 0, Math.PI * 2);
+      context.fill();
+
+      // Add subtle glow effect
+      context.globalAlpha = opacity * 0.3;
+      context.beginPath();
+      context.arc(sparkle.x, sparkle.y, sparkle.size + 1, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    context.globalAlpha = 1;
     context.restore();
   }
 }

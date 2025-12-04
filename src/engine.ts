@@ -13,6 +13,7 @@ import { PhysicsSystem } from './physics';
 import { PHYSICS_CONSTANTS } from './levelConfig';
 import { TimeoutManager } from './timeoutManager';
 import { TitanicAnimationSystem } from './titanicAnimation';
+import { SparkleSystem } from './sparkles';
 
 /**
  * GameEngine class manages the game loop and coordinates all game systems
@@ -30,6 +31,7 @@ export class GameEngine {
   private physicsSystem: PhysicsSystem;
   private timeoutManager: TimeoutManager;
   private titanicAnimationSystem: TitanicAnimationSystem;
+  private sparkleSystem: SparkleSystem;
   
   private gameStatus: GameStatus;
   private isRunning: boolean;
@@ -61,6 +63,7 @@ export class GameEngine {
     this.physicsSystem = new PhysicsSystem();
     this.timeoutManager = new TimeoutManager(5); // 5 second timeout
     this.titanicAnimationSystem = new TitanicAnimationSystem(canvas.width, canvas.height);
+    this.sparkleSystem = new SparkleSystem();
 
     // Initialize game state
     this.gameStatus = 'playing';
@@ -177,6 +180,9 @@ export class GameEngine {
     if (this.currentLevel === 0 && nextLevel > 0) {
       this.timeoutManager.stop();
     }
+    
+    // Clear sparkles on level transition (Requirement 5.4)
+    this.sparkleSystem.clear();
     
     this.gameStatus = 'transitioning';
     
@@ -295,12 +301,16 @@ export class GameEngine {
       if (this.currentLevel === 0) {
         // Starting area: Simple movement only
         const direction = this.inputHandler.getActiveDirection();
+        const isMoving = direction !== null;
         if (direction) {
           this.character.move(direction, deltaTime);
         }
 
         // Update rotation animation (without physics/gravity)
         this.character.updateRotationOnly(deltaTime);
+
+        // Update sparkle system (Requirements: 1.1, 1.2, 5.1, 5.5)
+        this.sparkleSystem.update(this.character, deltaTime, isMoving);
 
         // Update sea creatures
         for (const creature of this.seaCreatures) {
@@ -333,6 +343,7 @@ export class GameEngine {
 
         // Handle horizontal movement (Requirements 2.3, 7.5)
         const direction = this.inputHandler.getActiveDirection();
+        const isMoving = direction !== null;
         if (direction) {
           this.character.move(direction, deltaTime);
         }
@@ -345,6 +356,9 @@ export class GameEngine {
 
         // Check collisions (obstacles)
         this.checkCollisions();
+
+        // Update sparkle system (Requirements: 1.1, 1.2, 5.1, 5.5)
+        this.sparkleSystem.update(this.character, deltaTime, isMoving);
 
         // Update sea creatures
         for (const creature of this.seaCreatures) {
@@ -434,6 +448,9 @@ export class GameEngine {
         this.renderer.drawDoor(this.context, this.door, nearDoor);
       }
 
+      // Draw sparkles (before character for trailing effect)
+      this.renderer.drawSparkles(this.context, this.sparkleSystem.getParticles());
+
       // Draw character
       this.renderer.drawCharacter(this.context, this.character);
 
@@ -484,6 +501,9 @@ export class GameEngine {
       if (this.chalice) {
         this.renderer.drawChalice(this.context, this.chalice);
       }
+
+      // Draw sparkles (before character for trailing effect)
+      this.renderer.drawSparkles(this.context, this.sparkleSystem.getParticles());
 
       // Draw character
       this.renderer.drawCharacter(this.context, this.character);
