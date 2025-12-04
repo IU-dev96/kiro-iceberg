@@ -3,12 +3,14 @@
  * Requirements: 4.2, 5.1, 5.2, 7.1, 7.2, 7.4, 8.1, 8.2, 8.3, 8.4, 9.1, 9.2, 9.3, 9.5
  */
 
-import { GhostCharacter, GameStatus, Trapdoor, Chalice } from './models';
+import { GhostCharacter, GameStatus, Trapdoor, Chalice, Obstacle, Door, SeaCreature } from './models';
 import { InputHandler } from './input';
 import { SceneRenderer } from './renderer';
 import { LevelManager } from './levelManager';
 import { CollisionDetector } from './collision';
 import { FireworksSystem } from './fireworks';
+import { PhysicsSystem } from './physics';
+import { PHYSICS_CONSTANTS } from './levelConfig';
 
 /**
  * GameEngine class manages the game loop and coordinates all game systems
@@ -23,12 +25,16 @@ export class GameEngine {
   private levelManager: LevelManager;
   private collisionDetector: CollisionDetector;
   private fireworksSystem: FireworksSystem;
+  private physicsSystem: PhysicsSystem;
   
   private gameStatus: GameStatus;
   private isRunning: boolean;
   private currentLevel: number;
   private trapdoor: Trapdoor | null;
   private chalice: Chalice | null;
+  private obstacles: Obstacle[];
+  private door: Door | null;
+  private seaCreatures: SeaCreature[];
   private lastFrameTime: number;
   private animationFrameId: number | null;
 
@@ -48,82 +54,118 @@ export class GameEngine {
     this.levelManager = new LevelManager(canvas.width, canvas.height);
     this.collisionDetector = new CollisionDetector();
     this.fireworksSystem = new FireworksSystem(canvas.width, canvas.height);
+    this.physicsSystem = new PhysicsSystem();
 
     // Initialize game state
     this.gameStatus = 'playing';
     this.isRunning = false;
-    this.currentLevel = 1;
+    this.currentLevel = 0; // Start at level 0 (starting area)
     this.trapdoor = null;
     this.chalice = null;
+    this.obstacles = [];
+    this.door = null;
+    this.seaCreatures = [];
     this.lastFrameTime = 0;
     this.animationFrameId = null;
 
-    // Initialize character for level 1
-    // Level 1 is only 10% of canvas height (60 pixels for 600px canvas)
-    // Character needs to fit within this space
-    const level1Height = canvas.height * 0.1;
-    const characterHeight = Math.min(40, level1Height * 0.6); // Max 40px or 60% of level height
+    // Initialize character for starting area (top of iceberg)
+    const characterHeight = 40;
     const characterWidth = 35;
+    const waterLevel = canvas.height * 0.1;
+    const startX = canvas.width / 2 - characterWidth / 2;
+    const startY = waterLevel * 0.5 - characterHeight; // Middle of above-water area
     
     this.character = new GhostCharacter(
-      canvas.width / 2 - characterWidth / 2,  // Center horizontally
-      level1Height * 0.2,                      // Start at 20% down level 1
-      characterWidth,                          // Width
-      characterHeight,                         // Height
-      200,                                     // Velocity (pixels per second)
+      startX,
+      startY,
+      characterWidth,
+      characterHeight,
+      PHYSICS_CONSTANTS.HORIZONTAL_SPEED,
       canvas.width,
-      1                                        // Start at level 1
+      0
     );
 
-    // Initialize level 1
-    this.initializeLevel(1);
+    // Initialize starting area (level 0)
+    this.initializeLevel(0);
   }
 
   /**
    * Initialize a specific level
-   * Requirement 7.1: Place trapdoor at random position
-   * Requirement 8.1: Place chalice at random position on level 2
+   * Requirements: 3.1, 4.1, 5.2, 5.3, 6.1, 9.1
    * 
-   * @param level - The level number to initialize
+   * @param level - The level number to initialize (0 = starting area, 1-6 = game levels)
    */
   private initializeLevel(level: number): void {
     this.currentLevel = level;
     this.character.setLevel(level);
 
-    if (level === 1) {
-      // Level 1: Create trapdoor
-      this.trapdoor = this.levelManager.generateTrapdoor(level);
+    if (level === 0) {
+      // Level 0: Starting area at top of iceberg
+      this.obstacles = [];
       this.chalice = null;
       
-      // Position character in middle of level 1 where iceberg is wider
-      // Level 1 goes from 0 to waterLevel (10% of canvas)
-      const level1Height = this.canvas.height * 0.1;
-      this.character.x = this.canvas.width / 2 - this.character.width / 2;
-      this.character.y = level1Height * 0.2; // 20% down level 1
-    } else if (level === 2) {
-      // Level 2: Create chalice, no trapdoor
-      this.trapdoor = null;
-      this.chalice = this.levelManager.generateChalice(level);
-      
-      // Position character at top of level 2 (just below water level)
+      // Create entrance door to start the game
       const waterLevel = this.canvas.height * 0.1;
+      const doorX = this.canvas.width / 2 - 30;
+      const doorY = waterLevel * 0.3; // Position door higher up
+      this.door = new Door(doorX, doorY, 60, 80);
+      
+      // Generate a few sea creatures for atmosphere
+      this.seaCreatures = [];
+      for (let i = 0; i < 3; i++) {
+        this.seaCreatures.push(new SeaCreature(1, this.canvas.width, this.canvas.height));
+      }
+
+      // Position character at top of iceberg (lower so fully visible)
       this.character.x = this.canvas.width / 2 - this.character.width / 2;
-      this.character.y = waterLevel + 10; // Just below water level
+      this.character.y = waterLevel * 0.8 - this.character.height; // Lower position
+      this.character.velocityY = 0;
+      this.character.isJumping = false;
+      this.character.isOnGround = true;
+    } else {
+      // Levels 1-6: Platformer gameplay
+      // Generate obstacles for this level (Requirement 3.1, 5.3)
+      this.obstacles = this.levelManager.generateObstacles(level);
+
+      // Generate door for level transition (Requirement 4.1)
+      this.door = this.levelManager.generateDoor(level);
+
+      // Generate chalice on level 6 (Requirement 6.1)
+      this.chalice = this.levelManager.generateChalice(level);
+
+      // Generate sea creatures (Requirement 9.1)
+      this.seaCreatures = [];
+      for (let i = 0; i < (level + 1); i++) {
+        this.seaCreatures.push(new SeaCreature(level, this.canvas.width, this.canvas.height));
+      }
+
+      // Reset character position to start of level (Requirement 5.2)
+      this.character.x = 50;
+      this.character.y = PHYSICS_CONSTANTS.GROUND_Y - this.character.height;
+      this.character.velocityY = 0;
+      this.character.isJumping = false;
+      this.character.isOnGround = true;
     }
+
+    // Keep old trapdoor for backwards compatibility (not used in platformer mode)
+    this.trapdoor = null;
   }
 
   /**
    * Transition to the next level
-   * Requirement 7.4: Update game level when descending through trapdoor
+   * Requirements: 4.3, 5.2, 5.4
    * 
    * @param level - The level number to transition to
    */
   private transitionToLevel(level: number): void {
+    // Clamp level to valid range [1, 6]
+    const nextLevel = Math.max(1, Math.min(6, level));
+    
     this.gameStatus = 'transitioning';
     
     // Small delay for transition effect
     setTimeout(() => {
-      this.initializeLevel(level);
+      this.initializeLevel(nextLevel);
       this.gameStatus = 'playing';
     }, 300);
   }
@@ -202,6 +244,7 @@ export class GameEngine {
   /**
    * Update game state
    * Integrates input handling, collision detection, and state updates
+   * Requirements: 2.1, 2.3, 7.5, 11.3
    * 
    * @param deltaTime - Time elapsed since last frame in seconds
    */
@@ -211,14 +254,57 @@ export class GameEngine {
 
     // Only update gameplay if in playing state
     if (this.gameStatus === 'playing') {
-      // Handle character movement
-      const direction = this.inputHandler.getActiveDirection();
-      if (direction) {
-        this.character.move(direction, deltaTime);
-      }
+      if (this.currentLevel === 0) {
+        // Starting area: Simple movement only
+        const direction = this.inputHandler.getActiveDirection();
+        if (direction) {
+          this.character.move(direction, deltaTime);
+        }
 
-      // Check collisions
-      this.checkCollisions();
+        // Update rotation animation (without physics/gravity)
+        this.character.updateRotationOnly(deltaTime);
+
+        // Update sea creatures
+        for (const creature of this.seaCreatures) {
+          creature.update(deltaTime, this.canvas.width);
+        }
+
+        // Check door interaction to start game
+        if (this.door) {
+          const nearDoor = this.collisionDetector.checkDoorOverlap(this.character, this.door);
+          if (nearDoor && this.inputHandler.isEnterPressed()) {
+            this.inputHandler.consumeEnter();
+            this.transitionToLevel(1); // Start at level 1
+          }
+        }
+      } else {
+        // Game levels: Full platformer mechanics
+        // Handle jumping (Requirement 2.1)
+        if (this.inputHandler.isSpacePressed() && this.character.isOnGround) {
+          this.character.jump();
+          this.inputHandler.consumeSpace();
+        }
+
+        // Handle horizontal movement (Requirements 2.3, 7.5)
+        const direction = this.inputHandler.getActiveDirection();
+        if (direction) {
+          this.character.move(direction, deltaTime);
+        }
+
+        // Update physics (Requirement 11.3)
+        this.character.updatePhysics(deltaTime);
+
+        // Check ground collision
+        this.physicsSystem.checkGroundCollision(this.character, PHYSICS_CONSTANTS.GROUND_Y);
+
+        // Update sea creatures
+        for (const creature of this.seaCreatures) {
+          creature.update(deltaTime, this.canvas.width);
+        }
+
+        // Check collisions
+        this.checkCollisions();
+      }
     } else if (this.gameStatus === 'won') {
       // Update fireworks
       this.fireworksSystem.update(deltaTime);
@@ -227,33 +313,26 @@ export class GameEngine {
 
   /**
    * Check all collisions
-   * Requirements: 7.2, 8.2, 9.1, 9.5
+   * Requirements: 3.2, 4.3, 6.2, 8.1, 8.2
    */
   private checkCollisions(): void {
-    // Check boundary (Requirement 9.1, 9.5)
-    const bounds = this.levelManager.getIcebergBounds(this.currentLevel);
-    const withinBounds = this.collisionDetector.checkBoundary(this.character, bounds);
-    
-    if (!withinBounds) {
-      this.triggerLose();
-      return;
+    // Check obstacle collisions (Requirements 3.2, 8.1, 8.2)
+    for (const obstacle of this.obstacles) {
+      this.physicsSystem.resolveCollision(this.character, obstacle);
     }
 
-    // Check trapdoor (Requirement 7.2)
-    if (this.trapdoor && this.currentLevel === 1) {
-      const onTrapdoor = this.collisionDetector.checkTrapdoorOverlap(
-        this.character,
-        this.trapdoor
-      );
+    // Check door interaction (Requirement 4.3)
+    if (this.door) {
+      const nearDoor = this.collisionDetector.checkDoorOverlap(this.character, this.door);
       
-      if (onTrapdoor && this.inputHandler.isEnterPressed()) {
+      if (nearDoor && this.inputHandler.isEnterPressed()) {
         this.inputHandler.consumeEnter();
-        this.transitionToLevel(2);
+        this.transitionToLevel(this.currentLevel + 1);
       }
     }
 
-    // Check chalice (Requirement 8.2)
-    if (this.chalice && this.currentLevel === 2) {
+    // Check chalice collection (Requirement 6.2)
+    if (this.chalice && !this.chalice.collected) {
       const touchedChalice = this.collisionDetector.checkChaliceCollision(
         this.character,
         this.chalice
@@ -264,30 +343,87 @@ export class GameEngine {
         this.triggerWin();
       }
     }
+
+    // Check if character fell off screen (lose condition)
+    if (this.character.y > this.canvas.height) {
+      this.triggerLose();
+    }
   }
 
   /**
    * Render the game scene
    * Integrates rendering of all game elements
+   * Requirements: 1.1, 1.3, 3.4, 4.4, 9.1
    */
   render(): void {
     // Clear canvas
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Draw background for current level
-    this.renderer.drawBackground(this.context, this.currentLevel);
+    if (this.currentLevel === 0) {
+      // Starting area: Show full iceberg view
+      this.renderer.drawBackground(this.context, 1); // Draw as level 1 to show full iceberg
+      
+      // Draw sea creatures in background
+      this.renderer.drawSeaCreatures(this.context, this.seaCreatures);
 
-    // Draw game objects
-    if (this.trapdoor && this.currentLevel === 1) {
-      this.renderer.drawTrapdoor(this.context, this.trapdoor);
+      // Draw entrance door
+      if (this.door) {
+        const nearDoor = this.door.checkOverlap(this.character);
+        this.renderer.drawDoor(this.context, this.door, nearDoor);
+      }
+
+      // Draw character
+      this.renderer.drawCharacter(this.context, this.character);
+
+      // Draw welcome text at bottom
+      this.context.save();
+      const bannerY = this.canvas.height - 120;
+      this.context.fillStyle = 'rgba(0, 0, 0, 0.7)';
+      this.context.fillRect(this.canvas.width / 2 - 200, bannerY, 400, 80);
+      this.context.strokeStyle = '#FFD700';
+      this.context.lineWidth = 2;
+      this.context.strokeRect(this.canvas.width / 2 - 200, bannerY, 400, 80);
+      
+      this.context.fillStyle = '#FFFFFF';
+      this.context.font = 'bold 28px Arial';
+      this.context.textAlign = 'center';
+      this.context.fillText('Tip of the Iceberg', this.canvas.width / 2, bannerY + 30);
+      this.context.font = '18px Arial';
+      this.context.fillText('Enter the door to begin', this.canvas.width / 2, bannerY + 60);
+      this.context.restore();
+    } else {
+      // Game levels: Normal platformer view
+      // Draw background for current level
+      this.renderer.drawBackground(this.context, this.currentLevel);
+
+      // Draw sea creatures in background (Requirement 9.1)
+      this.renderer.drawSeaCreatures(this.context, this.seaCreatures);
+
+      // Draw ground line
+      this.renderer.drawGround(this.context, PHYSICS_CONSTANTS.GROUND_Y);
+
+      // Draw obstacles (Requirement 3.4)
+      for (const obstacle of this.obstacles) {
+        this.renderer.drawObstacle(this.context, obstacle);
+      }
+
+      // Draw door (Requirement 4.4)
+      if (this.door) {
+        const nearDoor = this.door.checkOverlap(this.character);
+        this.renderer.drawDoor(this.context, this.door, nearDoor);
+      }
+
+      // Draw chalice
+      if (this.chalice) {
+        this.renderer.drawChalice(this.context, this.chalice);
+      }
+
+      // Draw character
+      this.renderer.drawCharacter(this.context, this.character);
+
+      // Draw level banner (Requirements 1.1, 1.3)
+      this.renderer.drawLevelBanner(this.context, this.currentLevel);
     }
-
-    if (this.chalice && this.currentLevel === 2) {
-      this.renderer.drawChalice(this.context, this.chalice);
-    }
-
-    // Draw character
-    this.renderer.drawCharacter(this.context, this.character);
 
     // Draw UI overlays
     if (this.gameStatus === 'won') {

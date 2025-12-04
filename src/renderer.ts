@@ -4,7 +4,7 @@
  * Requirements: 1.1, 1.2, 6.1, 6.2, 7.3, 8.3, 8.4, 8.5, 9.2, 9.3
  */
 
-import { GhostCharacter, Trapdoor, Chalice, Particle } from './models';
+import { GhostCharacter, Trapdoor, Chalice, Particle, Obstacle, Door, SeaCreature } from './models';
 
 /**
  * SceneRenderer class manages all drawing operations for the game
@@ -14,11 +14,33 @@ export class SceneRenderer {
   private canvasWidth: number;
   private canvasHeight: number;
   private waterLevel: number;
+  private ghostImage: HTMLImageElement | null;
+  private imageLoaded: boolean;
 
   constructor(canvasWidth: number, canvasHeight: number) {
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
     this.waterLevel = canvasHeight * 0.1; // 10% above water
+    this.ghostImage = null;
+    this.imageLoaded = false;
+    
+    // Load the Kiro ghost icon
+    this.loadGhostImage();
+  }
+
+  /**
+   * Load the ghost SVG image
+   */
+  private loadGhostImage(): void {
+    this.ghostImage = new Image();
+    this.ghostImage.onload = () => {
+      this.imageLoaded = true;
+    };
+    this.ghostImage.onerror = () => {
+      console.warn('Failed to load ghost image, will use fallback rendering');
+      this.imageLoaded = false;
+    };
+    this.ghostImage.src = 'https://kiro.dev/icon.svg?fe599162bb293ea0';
   }
 
   /**
@@ -34,7 +56,7 @@ export class SceneRenderer {
     const height = this.canvasHeight;
 
     if (level === 1) {
-      // Level 1: Above water
+      // Level 1: Above water - but show full iceberg
       // Sky gradient
       const skyGradient = context.createLinearGradient(0, 0, 0, this.waterLevel);
       skyGradient.addColorStop(0, '#87CEEB'); // Sky blue
@@ -43,8 +65,20 @@ export class SceneRenderer {
       context.fillStyle = skyGradient;
       context.fillRect(0, 0, width, this.waterLevel);
 
+      // Water gradient (for underwater portion visible at start)
+      const waterGradient = context.createLinearGradient(0, this.waterLevel, 0, height);
+      waterGradient.addColorStop(0, '#4682B4'); // Steel blue
+      waterGradient.addColorStop(0.5, '#1E3A5F'); // Dark blue
+      waterGradient.addColorStop(1, '#0F1F3F'); // Very dark blue
+
+      context.fillStyle = waterGradient;
+      context.fillRect(0, this.waterLevel, width, height - this.waterLevel);
+
       // Draw iceberg for level 1 (above water)
       this.drawIcebergLevel1(context, width);
+      
+      // Draw underwater portion of iceberg (visible but not accessible yet)
+      this.drawIcebergLevel2(context, width, height);
     } else {
       // Level 2: Below water
       // Water gradient (darker for underwater)
@@ -132,76 +166,96 @@ export class SceneRenderer {
   /**
    * Draw the ghost character with visual properties
    * Requirement 1.2: Show the Ghost Character with distinct visual appearance
+   * Apply Y-axis rotation based on animation state
    * 
    * @param context - The canvas rendering context
    * @param character - The ghost character to draw
    */
   drawCharacter(context: CanvasRenderingContext2D, character: GhostCharacter): void {
-    // Save context state
     context.save();
 
-    // Draw ghost body (rounded shape)
-    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    context.beginPath();
-    
-    // Top rounded part (head)
+    // Apply Y-axis rotation for smooth direction change animation
+    const rotationY = character.getRotationY();
     const centerX = character.x + character.width / 2;
-    const topY = character.y;
-    const radius = character.width / 2;
+    const centerY = character.y + character.height / 2;
     
-    context.arc(centerX, topY + radius, radius, Math.PI, 0, false);
-    
-    // Body rectangle
-    context.rect(character.x, topY + radius, character.width, character.height - radius);
-    
-    context.fill();
+    // Translate to center, apply rotation via X-axis scaling, translate back
+    context.translate(centerX, centerY);
+    context.scale(Math.cos(rotationY), 1); // Y-axis rotation effect
+    context.translate(-centerX, -centerY);
 
-    // Draw wavy bottom edge
-    context.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    context.beginPath();
-    const bottomY = character.y + character.height;
-    const waveCount = 3;
-    const waveWidth = character.width / waveCount;
-    
-    context.moveTo(character.x, bottomY - 5);
-    for (let i = 0; i < waveCount; i++) {
-      const x = character.x + i * waveWidth;
-      context.quadraticCurveTo(
-        x + waveWidth / 2,
-        bottomY + 5,
-        x + waveWidth,
-        bottomY - 5
+    if (this.imageLoaded && this.ghostImage) {
+      // Draw the Kiro ghost icon
+      context.drawImage(
+        this.ghostImage,
+        character.x,
+        character.y,
+        character.width,
+        character.height
       );
+    } else {
+      // Fallback: Draw simple ghost shape
+      context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      context.beginPath();
+      
+      // Top rounded part (head)
+      const topY = character.y;
+      const radius = character.width / 2;
+      
+      context.arc(centerX, topY + radius, radius, Math.PI, 0, false);
+      
+      // Body rectangle
+      context.rect(character.x, topY + radius, character.width, character.height - radius);
+      
+      context.fill();
+
+      // Draw wavy bottom edge
+      context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      context.beginPath();
+      const bottomY = character.y + character.height;
+      const waveCount = 3;
+      const waveWidth = character.width / waveCount;
+      
+      context.moveTo(character.x, bottomY - 5);
+      for (let i = 0; i < waveCount; i++) {
+        const x = character.x + i * waveWidth;
+        context.quadraticCurveTo(
+          x + waveWidth / 2,
+          bottomY + 5,
+          x + waveWidth,
+          bottomY - 5
+        );
+      }
+      context.lineTo(character.x + character.width, bottomY - 10);
+      context.lineTo(character.x, bottomY - 10);
+      context.closePath();
+      context.fill();
+
+      // Draw eyes
+      const eyeRadius = character.width * 0.08;
+      const eyeY = character.y + character.height * 0.3;
+      const eyeOffset = character.width * 0.25;
+
+      // Left eye
+      context.fillStyle = '#000000';
+      context.beginPath();
+      context.arc(centerX - eyeOffset, eyeY, eyeRadius, 0, Math.PI * 2);
+      context.fill();
+
+      // Right eye
+      context.beginPath();
+      context.arc(centerX + eyeOffset, eyeY, eyeRadius, 0, Math.PI * 2);
+      context.fill();
+
+      // Draw subtle glow effect
+      context.strokeStyle = 'rgba(200, 220, 255, 0.5)';
+      context.lineWidth = 2;
+      context.beginPath();
+      context.arc(centerX, topY + radius, radius + 2, Math.PI, 0, false);
+      context.stroke();
     }
-    context.lineTo(character.x + character.width, bottomY - 10);
-    context.lineTo(character.x, bottomY - 10);
-    context.closePath();
-    context.fill();
 
-    // Draw eyes
-    const eyeRadius = character.width * 0.08;
-    const eyeY = character.y + character.height * 0.3;
-    const eyeOffset = character.width * 0.25;
-
-    // Left eye
-    context.fillStyle = '#000000';
-    context.beginPath();
-    context.arc(centerX - eyeOffset, eyeY, eyeRadius, 0, Math.PI * 2);
-    context.fill();
-
-    // Right eye
-    context.beginPath();
-    context.arc(centerX + eyeOffset, eyeY, eyeRadius, 0, Math.PI * 2);
-    context.fill();
-
-    // Draw subtle glow effect
-    context.strokeStyle = 'rgba(200, 220, 255, 0.5)';
-    context.lineWidth = 2;
-    context.beginPath();
-    context.arc(centerX, topY + radius, radius + 2, Math.PI, 0, false);
-    context.stroke();
-
-    // Restore context state
+    // Restore canvas context state
     context.restore();
   }
 
@@ -395,6 +449,153 @@ export class SceneRenderer {
     context.fillStyle = '#FFF';
     context.font = '24px Arial';
     context.fillText('You drowned!', this.canvasWidth / 2, this.canvasHeight / 2 + 60);
+
+    context.restore();
+  }
+
+  /**
+   * Draw an obstacle
+   * Requirement 3.4: Display obstacles with distinct visual appearance
+   * 
+   * @param context - The canvas rendering context
+   * @param obstacle - The obstacle to draw
+   */
+  drawObstacle(context: CanvasRenderingContext2D, obstacle: Obstacle): void {
+    context.save();
+
+    // Draw obstacle body
+    context.fillStyle = '#8B7355'; // Brown/tan color
+    context.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+    // Add border
+    context.strokeStyle = '#654321';
+    context.lineWidth = 2;
+    context.strokeRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+    // Add texture lines
+    context.strokeStyle = '#A0826D';
+    context.lineWidth = 1;
+    for (let i = 1; i < 3; i++) {
+      const y = obstacle.y + (obstacle.height / 3) * i;
+      context.beginPath();
+      context.moveTo(obstacle.x, y);
+      context.lineTo(obstacle.x + obstacle.width, y);
+      context.stroke();
+    }
+
+    context.restore();
+  }
+
+  /**
+   * Draw a door
+   * Requirements: 4.2, 4.4: Display door with distinct visual appearance
+   * 
+   * @param context - The canvas rendering context
+   * @param door - The door to draw
+   * @param showPrompt - Whether to show interaction prompt
+   */
+  drawDoor(context: CanvasRenderingContext2D, door: Door, showPrompt: boolean = false): void {
+    if (!door.isActive) {
+      return;
+    }
+
+    context.save();
+
+    // Draw door frame
+    context.fillStyle = '#8B4513'; // Saddle brown
+    context.fillRect(door.x, door.y, door.width, door.height);
+
+    // Draw door panels
+    context.strokeStyle = '#654321';
+    context.lineWidth = 3;
+    
+    // Vertical center line
+    context.beginPath();
+    context.moveTo(door.x + door.width / 2, door.y + 5);
+    context.lineTo(door.x + door.width / 2, door.y + door.height - 5);
+    context.stroke();
+
+    // Horizontal line
+    context.beginPath();
+    context.moveTo(door.x + 5, door.y + door.height / 2);
+    context.lineTo(door.x + door.width - 5, door.y + door.height / 2);
+    context.stroke();
+
+    // Draw door knob
+    context.fillStyle = '#FFD700'; // Gold
+    context.beginPath();
+    context.arc(door.x + door.width * 0.7, door.y + door.height / 2, 5, 0, Math.PI * 2);
+    context.fill();
+
+    // Show interaction prompt if near
+    if (showPrompt) {
+      context.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      context.font = '14px Arial';
+      context.textAlign = 'center';
+      context.fillText('Press ENTER', door.x + door.width / 2, door.y - 10);
+    }
+
+    context.restore();
+  }
+
+  /**
+   * Draw sea creatures
+   * Requirement 9.1: Display sea creatures outside boundaries
+   * 
+   * @param context - The canvas rendering context
+   * @param seaCreatures - Array of sea creatures
+   */
+  drawSeaCreatures(context: CanvasRenderingContext2D, seaCreatures: SeaCreature[]): void {
+    for (const creature of seaCreatures) {
+      creature.draw(context);
+    }
+  }
+
+  /**
+   * Draw level banner
+   * Requirements: 1.1, 1.2: Display level number prominently
+   * 
+   * @param context - The canvas rendering context
+   * @param level - Current level number
+   */
+  drawLevelBanner(context: CanvasRenderingContext2D, level: number): void {
+    context.save();
+
+    // Draw banner background
+    context.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    context.fillRect(10, 10, 120, 40);
+
+    // Draw border
+    context.strokeStyle = '#FFD700';
+    context.lineWidth = 2;
+    context.strokeRect(10, 10, 120, 40);
+
+    // Draw level text
+    context.fillStyle = '#FFFFFF';
+    context.font = 'bold 24px Arial';
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillText(`Level ${level}`, 70, 30);
+
+    context.restore();
+  }
+
+  /**
+   * Draw ground line
+   * Helper method to visualize the ground
+   * 
+   * @param context - The canvas rendering context
+   * @param groundY - Y coordinate of ground
+   */
+  drawGround(context: CanvasRenderingContext2D, groundY: number): void {
+    context.save();
+    
+    context.strokeStyle = '#654321';
+    context.lineWidth = 3;
+    context.beginPath();
+    context.moveTo(0, groundY);
+    context.lineTo(this.canvasWidth, groundY);
+    context.stroke();
 
     context.restore();
   }

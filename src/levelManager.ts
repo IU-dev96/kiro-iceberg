@@ -4,7 +4,8 @@
  * Requirements: 6.1, 6.2, 6.3, 7.1, 8.1, 9.1
  */
 
-import { IcebergBounds, LevelData, Trapdoor, Chalice } from './models';
+import { IcebergBounds, LevelData, Trapdoor, Chalice, Obstacle, Door } from './models';
+import { getLevelConfig, PHYSICS_CONSTANTS } from './levelConfig';
 
 /**
  * LevelManager class manages level-specific data and iceberg geometry
@@ -138,35 +139,92 @@ export class LevelManager {
   }
 
   /**
-   * Generate a chalice at random position on level 2
-   * Requirement 8.1: Place chalice at random horizontal position
+   * Generate a chalice at designated position on level 6
+   * Requirements: 6.1, 6.3
    * 
-   * @param level - The level number (should be 2)
-   * @returns Chalice instance
+   * @param level - The level number (should be 6)
+   * @returns Chalice instance or null
    */
-  generateChalice(level: number): Chalice {
-    if (level !== 2) {
-      throw new Error('Chalice only appears on level 2');
+  generateChalice(level: number): Chalice | null {
+    if (level !== 6) {
+      return null; // Chalice only appears on level 6 (Requirement 6.3)
     }
 
-    const bounds = this.getIcebergBounds(level);
+    const config = getLevelConfig(level);
+    if (config.chalicePosition) {
+      return new Chalice(config.chalicePosition.x, config.chalicePosition.y);
+    }
     
-    // Random Y position in the middle section of level 2
-    const minY = bounds.topY + 100;
-    const maxY = bounds.bottomY - 150;
-    const randomY = minY + Math.random() * (maxY - minY);
+    return null;
+  }
+
+  /**
+   * Generate obstacles for a level based on configuration
+   * Requirements: 3.1, 3.3, 3.5, 5.3
+   * 
+   * @param level - The level number
+   * @returns Array of obstacles
+   */
+  generateObstacles(level: number): Obstacle[] {
+    const config = getLevelConfig(level);
+    const obstacles: Obstacle[] = [];
+    const groundY = PHYSICS_CONSTANTS.GROUND_Y;
+
+    // Calculate available horizontal space
+    const startX = 100; // Start obstacles after some space
+    const endX = config.doorPosition.x - 100; // End before door
+    const availableWidth = endX - startX;
+
+    // Calculate spacing between obstacles
+    const totalObstacleWidth = config.obstacleCount * ((config.obstacleWidthRange[0] + config.obstacleWidthRange[1]) / 2);
+    const totalSpacing = availableWidth - totalObstacleWidth;
+    const spacing = Math.max(config.obstacleMinSpacing, totalSpacing / (config.obstacleCount + 1));
+
+    let currentX = startX + spacing;
+
+    for (let i = 0; i < config.obstacleCount; i++) {
+      // Random dimensions within range
+      const width = config.obstacleWidthRange[0] + 
+        Math.random() * (config.obstacleWidthRange[1] - config.obstacleWidthRange[0]);
+      const height = config.obstacleHeightRange[0] + 
+        Math.random() * (config.obstacleHeightRange[1] - config.obstacleHeightRange[0]);
+
+      // Position on ground
+      const x = currentX;
+      const y = groundY - height;
+
+      // Validate obstacle is jumpable (Requirement 3.3)
+      const maxJumpHeight = Math.abs(PHYSICS_CONSTANTS.JUMP_STRENGTH) * Math.abs(PHYSICS_CONSTANTS.JUMP_STRENGTH) / (2 * PHYSICS_CONSTANTS.GRAVITY);
+      if (height <= maxJumpHeight * 0.8) { // 80% of max jump height to ensure clearance
+        obstacles.push(new Obstacle(x, y, width, height, 'block'));
+      }
+
+      currentX += width + spacing;
+    }
+
+    return obstacles;
+  }
+
+  /**
+   * Generate a door for level transition
+   * Requirements: 4.1, 4.5
+   * 
+   * @param level - The level number
+   * @returns Door instance or null
+   */
+  generateDoor(level: number): Door | null {
+    if (level >= 6) {
+      return null; // No door on final level (Requirement 4.5)
+    }
+
+    const config = getLevelConfig(level);
+    const groundY = PHYSICS_CONSTANTS.GROUND_Y;
     
-    // Get iceberg width at that Y position
-    const { left, right } = bounds.getWidthAtY(randomY);
+    // Place door at configured position, on the ground
+    const doorHeight = 80;
+    const doorY = groundY - doorHeight;
     
-    // Random X position within bounds
-    const safeMargin = 80;
-    const minX = left + safeMargin;
-    const maxX = right - safeMargin - 40; // 40 is chalice width
-    
-    const randomX = minX + Math.random() * (maxX - minX);
-    
-    return new Chalice(randomX, randomY);
+    return new Door(config.doorPosition.x, doorY);
   }
 
   /**

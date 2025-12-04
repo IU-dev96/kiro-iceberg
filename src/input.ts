@@ -11,6 +11,7 @@ export class InputHandler {
   private keys: Map<string, boolean>;
   private activeDirection: 'left' | 'right' | null;
   private enterPressed: boolean;
+  private spacePressed: boolean;
   private keydownHandler: (event: KeyboardEvent) => void;
   private keyupHandler: (event: KeyboardEvent) => void;
 
@@ -18,6 +19,7 @@ export class InputHandler {
     this.keys = new Map<string, boolean>();
     this.activeDirection = null;
     this.enterPressed = false;
+    this.spacePressed = false;
     
     // Bind event handlers to maintain 'this' context
     this.keydownHandler = this.handleKeyDown.bind(this);
@@ -72,6 +74,12 @@ export class InputHandler {
       event.preventDefault();
       this.enterPressed = true;
     }
+
+    // Process Spacebar for jumping (Requirement 2.1)
+    if (key === ' ' || key === 'Spacebar') {
+      event.preventDefault();
+      this.spacePressed = true;
+    }
   }
 
   /**
@@ -106,6 +114,12 @@ export class InputHandler {
     if (key === 'Enter') {
       event.preventDefault();
       this.enterPressed = false;
+    }
+
+    // Reset Spacebar on release
+    if (key === ' ' || key === 'Spacebar') {
+      event.preventDefault();
+      this.spacePressed = false;
     }
   }
 
@@ -145,6 +159,24 @@ export class InputHandler {
    */
   consumeEnter(): void {
     this.enterPressed = false;
+  }
+
+  /**
+   * Check if Spacebar is currently pressed
+   * Requirement 2.1: Detect spacebar for jumping
+   * 
+   * @returns true if Spacebar is pressed
+   */
+  isSpacePressed(): boolean {
+    return this.spacePressed;
+  }
+
+  /**
+   * Consume the Spacebar press (reset it after use)
+   * Useful to prevent multiple triggers from a single press
+   */
+  consumeSpace(): void {
+    this.spacePressed = false;
   }
 
   /**

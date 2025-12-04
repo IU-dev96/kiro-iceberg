@@ -3,7 +3,7 @@
  * Requirements: 7.2, 8.2, 9.1, 9.4
  */
 
-import { GhostCharacter, Trapdoor, Chalice, IcebergBounds } from './models';
+import { GhostCharacter, Trapdoor, Chalice, IcebergBounds, Obstacle, Door } from './models';
 
 /**
  * CollisionDetector class handles all collision detection logic
@@ -61,5 +61,83 @@ export class CollisionDetector {
    */
   checkChaliceCollision(character: GhostCharacter, chalice: Chalice): boolean {
     return chalice.checkCollision(character);
+  }
+
+  /**
+   * Check if character collides with an obstacle from the side
+   * Requirements: 3.2, 8.1
+   * 
+   * @param character - The ghost character
+   * @param obstacle - The obstacle
+   * @returns Collision result
+   */
+  checkObstacleCollision(character: GhostCharacter, obstacle: Obstacle) {
+    return obstacle.checkCollision(character);
+  }
+
+  /**
+   * Check if character is landing on top of an obstacle
+   * Requirement 8.2
+   * 
+   * @param character - The ghost character
+   * @param obstacle - The obstacle
+   * @returns true if landing on top
+   */
+  checkObstacleTopCollision(character: GhostCharacter, obstacle: Obstacle): boolean {
+    const collision = obstacle.checkCollision(character);
+    return collision.collided && collision.side === 'top';
+  }
+
+  /**
+   * Resolve obstacle collision to prevent passing through
+   * Requirements: 8.1, 8.5
+   * 
+   * @param character - The ghost character
+   * @param obstacle - The obstacle
+   */
+  resolveObstacleCollision(character: GhostCharacter, obstacle: Obstacle): void {
+    const collision = obstacle.checkCollision(character);
+    
+    if (!collision.collided) {
+      return;
+    }
+
+    const obsBounds = obstacle.getBounds();
+
+    switch (collision.side) {
+      case 'top':
+        // Character landing on top
+        character.y = obsBounds.y - character.height;
+        character.land();
+        break;
+        
+      case 'bottom':
+        // Character hitting bottom
+        character.y = obsBounds.y + obsBounds.height;
+        character.velocityY = 0;
+        break;
+        
+      case 'left':
+        // Character hitting left side
+        character.x = obsBounds.x - character.width;
+        break;
+        
+      case 'right':
+        // Character hitting right side
+        character.x = obsBounds.x + obsBounds.width;
+        break;
+    }
+  }
+
+  /**
+   * Check if character is overlapping the door
+   * Requirement 4.3: Detect door overlap for level transition
+   * 
+   * @param character - The ghost character
+   * @param door - The door
+   * @returns true if overlapping
+   */
+  checkDoorOverlap(character: GhostCharacter, door: Door): boolean {
+    return door.checkOverlap(character);
   }
 }
