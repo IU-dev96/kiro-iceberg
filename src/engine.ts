@@ -59,15 +59,20 @@ export class GameEngine {
     this.animationFrameId = null;
 
     // Initialize character for level 1
-    // Start at middle of level 1 where iceberg is wider
+    // Level 1 is only 10% of canvas height (60 pixels for 600px canvas)
+    // Character needs to fit within this space
+    const level1Height = canvas.height * 0.1;
+    const characterHeight = Math.min(40, level1Height * 0.6); // Max 40px or 60% of level height
+    const characterWidth = 35;
+    
     this.character = new GhostCharacter(
-      canvas.width / 2 - 25,   // Center horizontally
-      canvas.height * 0.04,    // Near middle of level 1 (level 1 is 0-10% of height)
-      50,                       // Width
-      60,                       // Height
-      200,                      // Velocity (pixels per second)
+      canvas.width / 2 - characterWidth / 2,  // Center horizontally
+      level1Height * 0.2,                      // Start at 20% down level 1
+      characterWidth,                          // Width
+      characterHeight,                         // Height
+      200,                                     // Velocity (pixels per second)
       canvas.width,
-      1                         // Start at level 1
+      1                                        // Start at level 1
     );
 
     // Initialize level 1
@@ -92,16 +97,18 @@ export class GameEngine {
       
       // Position character in middle of level 1 where iceberg is wider
       // Level 1 goes from 0 to waterLevel (10% of canvas)
+      const level1Height = this.canvas.height * 0.1;
       this.character.x = this.canvas.width / 2 - this.character.width / 2;
-      this.character.y = this.canvas.height * 0.04; // 40% down level 1
+      this.character.y = level1Height * 0.2; // 20% down level 1
     } else if (level === 2) {
       // Level 2: Create chalice, no trapdoor
       this.trapdoor = null;
       this.chalice = this.levelManager.generateChalice(level);
       
       // Position character at top of level 2 (just below water level)
+      const waterLevel = this.canvas.height * 0.1;
       this.character.x = this.canvas.width / 2 - this.character.width / 2;
-      this.character.y = this.canvas.height * 0.12;
+      this.character.y = waterLevel + 10; // Just below water level
     }
   }
 
