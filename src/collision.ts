@@ -90,7 +90,7 @@ export class CollisionDetector {
 
   /**
    * Resolve obstacle collision to prevent passing through
-   * Requirements: 8.1, 8.5
+   * Requirements: 8.1, 8.2, 8.3, 8.4, 8.5, 8.6, 8.7
    * 
    * @param character - The ghost character
    * @param obstacle - The obstacle
@@ -98,35 +98,79 @@ export class CollisionDetector {
   resolveObstacleCollision(character: GhostCharacter, obstacle: Obstacle): void {
     const collision = obstacle.checkCollision(character);
     
-    if (!collision.collided) {
+    if (!collision.collided || !collision.side) {
       return;
     }
 
-    const obsBounds = obstacle.getBounds();
-
     switch (collision.side) {
       case 'top':
-        // Character landing on top
-        character.y = obsBounds.y - character.height;
-        character.land();
+        this.resolveTopCollision(character, obstacle);
         break;
-        
       case 'bottom':
-        // Character hitting bottom
-        character.y = obsBounds.y + obsBounds.height;
-        character.velocityY = 0;
+        this.resolveBottomCollision(character, obstacle);
         break;
-        
       case 'left':
-        // Character hitting left side
-        character.x = obsBounds.x - character.width;
+        this.resolveLeftCollision(character, obstacle);
         break;
-        
       case 'right':
-        // Character hitting right side
-        character.x = obsBounds.x + obsBounds.width;
+        this.resolveRightCollision(character, obstacle);
         break;
     }
+  }
+
+  /**
+   * Resolve left collision - prevent rightward passage through obstacle
+   * Requirement 8.1
+   * 
+   * @param character - The ghost character
+   * @param obstacle - The obstacle
+   */
+  resolveLeftCollision(character: GhostCharacter, obstacle: Obstacle): void {
+    const obsBounds = obstacle.getBounds();
+    // Push character to the left of the obstacle
+    character.x = obsBounds.x - character.width;
+  }
+
+  /**
+   * Resolve right collision - prevent leftward passage through obstacle
+   * Requirement 8.2
+   * 
+   * @param character - The ghost character
+   * @param obstacle - The obstacle
+   */
+  resolveRightCollision(character: GhostCharacter, obstacle: Obstacle): void {
+    const obsBounds = obstacle.getBounds();
+    // Push character to the right of the obstacle
+    character.x = obsBounds.x + obsBounds.width;
+  }
+
+  /**
+   * Resolve top collision - handle landing on obstacle tops
+   * Requirements 8.3, 8.4
+   * 
+   * @param character - The ghost character
+   * @param obstacle - The obstacle
+   */
+  resolveTopCollision(character: GhostCharacter, obstacle: Obstacle): void {
+    const obsBounds = obstacle.getBounds();
+    // Position character on top of obstacle
+    character.y = obsBounds.y - character.height;
+    // Land on the obstacle (stops falling, allows jumping)
+    character.land();
+  }
+
+  /**
+   * Resolve bottom collision - handle hitting obstacle from below
+   * 
+   * @param character - The ghost character
+   * @param obstacle - The obstacle
+   */
+  resolveBottomCollision(character: GhostCharacter, obstacle: Obstacle): void {
+    const obsBounds = obstacle.getBounds();
+    // Push character below the obstacle
+    character.y = obsBounds.y + obsBounds.height;
+    // Stop upward velocity (bump head)
+    character.velocityY = 0;
   }
 
   /**

@@ -268,19 +268,27 @@ interface Particle {
 *For any* two depths Y1 and Y2 where Y1 < Y2 (Y2 is deeper), the iceberg width at Y2 should be greater than or equal to the width at Y1
 **Validates: Requirements 6.3**
 
-### Property 8: Trapdoor triggers level transition
-*For any* game state where the ghost character is positioned over the trapdoor and Enter is pressed, the current level should increment by one
+### Property 8: Trapdoor placement within bounds
+*For any* first level initialization, the trapdoor's horizontal position should be within the iceberg boundary at the floor level
+**Validates: Requirements 7.1**
+
+### Property 9: Trapdoor floor alignment
+*For any* trapdoor placement, the trapdoor's vertical position should be aligned with the floor surface
 **Validates: Requirements 7.2**
 
-### Property 9: Chalice collision triggers win
+### Property 10: Trapdoor triggers level transition
+*For any* game state where the ghost character is positioned over the trapdoor and Enter is pressed, the current level should increment by one
+**Validates: Requirements 7.3**
+
+### Property 11: Chalice collision triggers win
 *For any* game state where the ghost character's bounds overlap with the chalice bounds, the game status should transition to won
 **Validates: Requirements 8.2**
 
-### Property 10: Out of bounds triggers lose condition
+### Property 12: Out of bounds triggers lose condition
 *For any* game state where the ghost character's position is outside the iceberg boundary for the current level, the game status should transition to lost
 **Validates: Requirements 9.1**
 
-### Property 11: In-bounds allows normal movement
+### Property 13: In-bounds allows normal movement
 *For any* game state where the ghost character is within the iceberg boundary, movement commands should update the character position normally (not blocked)
 **Validates: Requirements 9.4**
 
@@ -338,10 +346,12 @@ Property-based tests will verify:
 5. **Property 5 (Right boundary constraint)**: Generate positions near/at right boundary, verify x never exceeds canvas width minus ghost width
 6. **Property 6 (Input priority handling)**: Generate random sequences of simultaneous key presses, verify consistent handling
 7. **Property 7 (Iceberg width increases with depth)**: Generate random depth pairs, verify width increases monotonically
-8. **Property 8 (Trapdoor triggers level transition)**: Generate random positions over trapdoor, verify Enter key triggers transition
-9. **Property 9 (Chalice collision triggers win)**: Generate random overlapping positions, verify win condition
-10. **Property 10 (Out of bounds triggers lose)**: Generate random out-of-bounds positions, verify lose condition
-11. **Property 11 (In-bounds allows movement)**: Generate random in-bounds positions, verify movement is not blocked
+8. **Property 8 (Trapdoor placement within bounds)**: Generate random level initializations, verify trapdoor is always within iceberg bounds at floor level
+9. **Property 9 (Trapdoor floor alignment)**: Generate random trapdoor placements, verify vertical position aligns with floor
+10. **Property 10 (Trapdoor triggers level transition)**: Generate random positions over trapdoor, verify Enter key triggers transition
+11. **Property 11 (Chalice collision triggers win)**: Generate random overlapping positions, verify win condition
+12. **Property 12 (Out of bounds triggers lose)**: Generate random out-of-bounds positions, verify lose condition
+13. **Property 13 (In-bounds allows movement)**: Generate random in-bounds positions, verify movement is not blocked
 
 ### Integration Testing
 - Test complete game loop cycle: input → collision detection → update → render
@@ -402,9 +412,10 @@ Property-based tests will verify:
 - **Continuous checking**: Perform collision checks every frame
 
 #### Random Placement
-- **Trapdoor**: Random X within safe bounds (not too close to edges)
+- **Trapdoor**: Random X within iceberg bounds at floor level, aligned with floor surface (Y position set to floor level)
 - **Chalice**: Random X and Y within level 2 iceberg bounds
 - **Seed**: Use Math.random() or allow seeded random for testing
+- **Boundary validation**: Ensure trapdoor placement respects iceberg width at the floor level to prevent spawning outside playable area
 
 #### Fireworks Animation
 - **Particle count**: 50-100 particles per burst

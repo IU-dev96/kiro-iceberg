@@ -101,6 +101,7 @@ class Obstacle {
 interface CollisionResult {
   collided: boolean;
   side: 'top' | 'bottom' | 'left' | 'right' | null;
+  penetrationDepth: number;  // How far character has penetrated into obstacle
 }
 ```
 
@@ -146,10 +147,43 @@ class PhysicsSystem {
   terminalVelocity: number;
   
   applyGravity(character: GhostCharacter, deltaTime: number): void;
-  resolveCollision(character: GhostCharacter, obstacle: Obstacle): void;
+  resolveCollision(character: GhostCharacter, obstacle: Obstacle, collisionSide: string): void;
   checkGroundCollision(character: GhostCharacter, groundY: number): boolean;
+  checkObstacleCollisions(character: GhostCharacter, obstacles: Obstacle[]): void;
 }
 ```
+
+### Collision Resolution Algorithm
+
+The collision system uses a multi-step approach:
+
+1. **Detection Phase**: Check AABB (Axis-Aligned Bounding Box) overlap between character and each obstacle
+2. **Side Determination**: Calculate which side of the obstacle the character is colliding with based on penetration depth
+3. **Resolution Phase**: Adjust character position to eliminate overlap:
+   - **Left collision**: Set character.x = obstacle.x - character.width (push character left)
+   - **Right collision**: Set character.x = obstacle.x + obstacle.width (push character right)
+   - **Top collision**: Set character.y = obstacle.y - character.height, set velocityY = 0, set isOnGround = true (land on top)
+   - **Bottom collision**: Set character.y = obstacle.y + obstacle.height, set velocityY = 0 (bump head)
+4. **State Update**: Update character's isOnGround and isJumping flags based on collision type
+
+### Obstacle Placement Algorithm
+
+To prevent obstacles from overlapping with doors (Requirement 12), the `generateObstacles` function in `LevelManager` uses a restricted zone approach:
+
+1. **Define Restricted Zone**: The door's x-position defines a restricted zone where obstacles cannot be placed
+   - Restricted zone extends from `doorX - clearance` to `doorX + doorWidth + clearance`
+   - Minimum clearance of 100 pixels ensures door accessibility
+2. **Calculate Available Space**: Obstacles are placed in the horizontal space from level start to the restricted zone
+   - Available space: `startX` to `doorX - clearance`
+3. **Distribute Obstacles**: Obstacles are evenly distributed within the available space
+   - Calculate spacing based on obstacle count and available width
+   - Ensure minimum spacing requirements are met
+4. **Validation**: Each obstacle position is validated to ensure:
+   - No overlap with door bounding box
+   - Minimum clearance distance maintained
+   - Obstacle remains within level boundaries
+
+This approach ensures the door remains accessible and visible without obstruction while maintaining the level's difficulty progression.
 
 ## Data Models
 
@@ -293,11 +327,17 @@ ss Properties
 
 **Validates: Requirements 3.1**
 
-### Property 7: Obstacle collision prevents passage
+### Property 7: Left obstacle collision prevents rightward passage
 
-*For any* character colliding with an obstacle from the side, the character's horizontal position should not pass through the obstacle boundaries.
+*For any* character colliding with an obstacle from the left side, the character's right edge (x + width) should not exceed the obstacle's left edge (obstacle.x).
 
-**Validates: Requirements 3.2, 8.1**
+**Validates: Requirements 8.1**
+
+### Property 7a: Right obstacle collision prevents leftward passage
+
+*For any* character colliding with an obstacle from the right side, the character's left edge (x) should not be less than the obstacle's right edge (obstacle.x + obstacle.width).
+
+**Validates: Requirements 8.2**
 
 ### Property 8: All obstacles are jumpable
 
@@ -367,15 +407,27 @@ ss Properties
 
 ### Property 19: Obstacle tops are solid surfaces
 
-*For any* character landing on top of an obstacle, the character should stop falling (velocityY = 0) and be able to jump again.
+*For any* character landing on top of an obstacle, the character should stop falling (velocityY = 0), be positioned at the obstacle's top surface (character.y + character.height = obstacle.y), and be able to jump again (isOnGround = true).
 
-**Validates: Requirements 8.2**
+**Validates: Requirements 8.3, 8.4**
+
+### Property 19a: Character cannot fall through obstacle tops
+
+*For any* character standing on top of an obstacle (character bottom at obstacle top), applying gravity should not cause the character to penetrate below the obstacle's top surface.
+
+**Validates: Requirements 8.4**
 
 ### Property 20: Successful jumps allow passage
 
 *For any* character whose bottom edge is above an obstacle's top edge while passing over it, no collision should be detected.
 
-**Validates: Requirements 8.3**
+**Validates: Requirements 8.5**
+
+### Property 20a: Collision resolution prevents overlap
+
+*For any* character-obstacle collision, after resolution the character's bounding box should not overlap with the obstacle's bounding box.
+
+**Validates: Requirements 8.6, 8.7**
 
 ### Property 21: Sea creatures exist outside boundaries
 
@@ -418,6 +470,18 @@ ss Properties
 *For any* game state during active play, the level banner should remain visible (rendered) throughout the level.
 
 **Validates: Requirements 1.3**
+
+### Property 28: Obstacles do not overlap with door
+
+*For any* level with obstacles and a door, no obstacle's bounding box should overlap with the door's bounding box.
+
+**Validates: Requirements 12.1, 12.3**
+
+### Property 29: Door maintains minimum clearance from obstacles
+
+*For any* level with obstacles and a door, all obstacles should maintain a minimum clearance distance from the door position.
+
+**Validates: Requirements 12.2, 12.4**
 
 ## Error Handling
 

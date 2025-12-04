@@ -607,7 +607,7 @@ export class Obstacle {
 
   /**
    * Check collision with character and determine collision side
-   * Requirements: 3.2, 8.1
+   * Requirements: 3.2, 8.1, 8.6
    * 
    * @param character - The ghost character
    * @returns Collision result with side information
@@ -628,26 +628,28 @@ export class Obstacle {
       return { collided: false, side: null };
     }
 
-    // Determine collision side based on overlap
-    const charCenterX = charBounds.x + charBounds.width / 2;
-    const charCenterY = charBounds.y + charBounds.height / 2;
-    const obsCenterX = obsBounds.x + obsBounds.width / 2;
-    const obsCenterY = obsBounds.y + obsBounds.height / 2;
+    // Calculate overlap on each side
+    const overlapLeft = (charBounds.x + charBounds.width) - obsBounds.x;
+    const overlapRight = (obsBounds.x + obsBounds.width) - charBounds.x;
+    const overlapTop = (charBounds.y + charBounds.height) - obsBounds.y;
+    const overlapBottom = (obsBounds.y + obsBounds.height) - charBounds.y;
 
-    const dx = charCenterX - obsCenterX;
-    const dy = charCenterY - obsCenterY;
+    // Find the minimum overlap (that's the collision side)
+    const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
 
-    const overlapX = (charBounds.width + obsBounds.width) / 2 - Math.abs(dx);
-    const overlapY = (charBounds.height + obsBounds.height) / 2 - Math.abs(dy);
-
-    // Determine which side has less overlap (that's the collision side)
     let side: 'top' | 'bottom' | 'left' | 'right';
-    if (overlapX < overlapY) {
-      // Horizontal collision
-      side = dx > 0 ? 'left' : 'right';
+    if (minOverlap === overlapLeft) {
+      // Character is hitting obstacle from the LEFT side
+      side = 'left';
+    } else if (minOverlap === overlapRight) {
+      // Character is hitting obstacle from the RIGHT side
+      side = 'right';
+    } else if (minOverlap === overlapTop) {
+      // Character is hitting obstacle from the TOP (landing on it)
+      side = 'top';
     } else {
-      // Vertical collision
-      side = dy > 0 ? 'top' : 'bottom';
+      // Character is hitting obstacle from the BOTTOM (jumping into it)
+      side = 'bottom';
     }
 
     return { collided: true, side };

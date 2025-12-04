@@ -116,26 +116,40 @@ export class LevelManager {
 
   /**
    * Generate a trapdoor at random position on the floor
-   * Requirement 7.1: Place trapdoor at random horizontal position
+   * Requirement 7.1: Place trapdoor at random horizontal position within iceberg boundary
+   * Requirement 7.2: Align trapdoor with floor surface
    * 
    * @param level - The level number
    * @returns Trapdoor instance
    */
   generateTrapdoor(level: number): Trapdoor {
     const bounds = this.getIcebergBounds(level);
-    const floorY = bounds.bottomY - 30; // Place slightly above bottom
+    // Use the platformer ground level for consistent floor positioning
+    const floorY = PHYSICS_CONSTANTS.GROUND_Y;
     
-    // Get iceberg width at floor level
+    // Get iceberg width at floor level (Requirement 7.1)
     const { left, right } = bounds.getWidthAtY(floorY);
     
-    // Random position within safe bounds (not too close to edges)
-    const safeMargin = 100;
-    const minX = left + safeMargin;
-    const maxX = right - safeMargin - 80; // 80 is trapdoor width
+    const trapdoorWidth = 80;
+    const trapdoorHeight = 20;
+    
+    // Random position within iceberg bounds at floor level
+    // Ensure trapdoor is fully within bounds
+    const minX = left;
+    const maxX = right - trapdoorWidth;
+    
+    // Validate that there's enough space for the trapdoor
+    if (maxX < minX) {
+      // If iceberg is too narrow, center the trapdoor
+      const randomX = (left + right - trapdoorWidth) / 2;
+      // Position trapdoor so its bottom edge is at floor level (Requirement 7.2)
+      return new Trapdoor(randomX, floorY - trapdoorHeight);
+    }
     
     const randomX = minX + Math.random() * (maxX - minX);
     
-    return new Trapdoor(randomX, floorY);
+    // Position trapdoor so its bottom edge aligns with floor surface (Requirement 7.2)
+    return new Trapdoor(randomX, floorY - trapdoorHeight);
   }
 
   /**
@@ -160,7 +174,7 @@ export class LevelManager {
 
   /**
    * Generate obstacles for a level based on configuration
-   * Requirements: 3.1, 3.3, 3.5, 5.3
+   * Requirements: 3.1, 3.3, 3.5, 5.3, 12.1, 12.2, 12.3, 12.4
    * 
    * @param level - The level number
    * @returns Array of obstacles
@@ -170,13 +184,26 @@ export class LevelManager {
     const obstacles: Obstacle[] = [];
     const groundY = PHYSICS_CONSTANTS.GROUND_Y;
 
-    // Calculate available horizontal space
+    // Define clearance distance from door (Requirement 12.2, 12.4)
+    const minClearance = 100; // Minimum clearance distance from door
+
+    // Define restricted zone around door (Requirement 12.4)
+    const doorX = config.doorPosition.x;
+    const restrictedZoneStart = doorX - minClearance;
+
+    // Calculate available horizontal space (Requirement 12.1)
     const startX = 100; // Start obstacles after some space
-    const endX = config.doorPosition.x - 100; // End before door
+    const endX = restrictedZoneStart; // End before restricted zone
     const availableWidth = endX - startX;
 
+    // Validate there's enough space for obstacles
+    if (availableWidth <= 0) {
+      return obstacles; // Not enough space, return empty array
+    }
+
     // Calculate spacing between obstacles
-    const totalObstacleWidth = config.obstacleCount * ((config.obstacleWidthRange[0] + config.obstacleWidthRange[1]) / 2);
+    const avgObstacleWidth = (config.obstacleWidthRange[0] + config.obstacleWidthRange[1]) / 2;
+    const totalObstacleWidth = config.obstacleCount * avgObstacleWidth;
     const totalSpacing = availableWidth - totalObstacleWidth;
     const spacing = Math.max(config.obstacleMinSpacing, totalSpacing / (config.obstacleCount + 1));
 
@@ -192,6 +219,13 @@ export class LevelManager {
       // Position on ground
       const x = currentX;
       const y = groundY - height;
+
+      // Validate obstacle doesn't overlap with restricted zone (Requirement 12.1, 12.3)
+      const obstacleEnd = x + width;
+      if (obstacleEnd > restrictedZoneStart) {
+        // Obstacle would enter restricted zone, skip it
+        break;
+      }
 
       // Validate obstacle is jumpable (Requirement 3.3)
       const maxJumpHeight = Math.abs(PHYSICS_CONSTANTS.JUMP_STRENGTH) * Math.abs(PHYSICS_CONSTANTS.JUMP_STRENGTH) / (2 * PHYSICS_CONSTANTS.GRAVITY);
@@ -220,9 +254,9 @@ export class LevelManager {
     const config = getLevelConfig(level);
     const groundY = PHYSICS_CONSTANTS.GROUND_Y;
     
-    // Place door at configured position, on the ground
+    // Place door standing on the ground with bottom edge aligned to ground
     const doorHeight = 80;
-    const doorY = groundY - doorHeight;
+    const doorY = groundY - doorHeight; // Position door so its bottom is at ground level
     
     return new Door(config.doorPosition.x, doorY);
   }
