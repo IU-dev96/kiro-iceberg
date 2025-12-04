@@ -83,3 +83,140 @@
 
 - [x] 9. Final checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
+
+## New Features - Multi-level Gameplay
+
+- [ ] 10. Update data models for multi-level gameplay
+  - Add game status enum ('playing', 'transitioning', 'won', 'lost') to GameState
+  - Add currentLevel property to GameState and GhostCharacter
+  - Create Trapdoor class with position, dimensions, and overlap detection
+  - Create Chalice class with position, dimensions, and collision detection
+  - Create Particle interface for fireworks animation
+  - Create IcebergBounds interface with dynamic width calculation
+  - Create LevelData interface for level-specific information
+  - _Requirements: 6.1, 6.2, 6.3, 7.1, 8.1, 9.1_
+
+- [ ] 11. Implement Level Manager
+  - Create LevelManager class to manage level data
+  - Implement getIcebergBounds() to return bounds for each level
+  - Implement iceberg width calculation (10% above water, 90% below, wider at depth)
+  - Implement generateTrapdoor() to create trapdoor at random position on floor
+  - Implement generateChalice() to create chalice at random position on level 2
+  - Implement isWithinBounds() to check if character is inside iceberg
+  - _Requirements: 6.1, 6.2, 6.3, 7.1, 8.1, 9.1_
+
+- [ ]* 11.1 Write property test for iceberg width increases with depth
+  - **Property 7: Iceberg width increases with depth**
+  - **Validates: Requirements 6.3**
+
+- [ ] 12. Update input handler for Enter key
+  - Add Enter key tracking to InputHandler
+  - Implement isEnterPressed() method
+  - Update event handlers to capture Enter key state
+  - _Requirements: 7.2_
+
+- [ ] 13. Implement collision detection system
+  - Create CollisionDetector class
+  - Implement checkBoundary() for iceberg boundary checking
+  - Implement checkTrapdoorOverlap() for trapdoor detection
+  - Implement checkChaliceCollision() for chalice collection
+  - Add getBounds() helper methods to game objects
+  - _Requirements: 7.2, 8.2, 9.1, 9.4_
+
+- [ ]* 13.1 Write property test for trapdoor triggers level transition
+  - **Property 8: Trapdoor triggers level transition**
+  - **Validates: Requirements 7.2**
+
+- [ ]* 13.2 Write property test for chalice collision triggers win
+  - **Property 9: Chalice collision triggers win**
+  - **Validates: Requirements 8.2**
+
+- [ ]* 13.3 Write property test for out of bounds triggers lose
+  - **Property 10: Out of bounds triggers lose condition**
+  - **Validates: Requirements 9.1**
+
+- [ ]* 13.4 Write property test for in-bounds allows movement
+  - **Property 11: In-bounds allows normal movement**
+  - **Validates: Requirements 9.4**
+
+- [ ] 14. Update scene renderer for new elements
+  - Update drawBackground() to render iceberg with correct proportions (10/90 split)
+  - Implement drawTrapdoor() to render trapdoor on floor
+  - Implement drawChalice() to render chalice with distinct appearance
+  - Implement drawWinScreen() to display "You Win" text
+  - Implement drawLoseScreen() to display "Game Over" text
+  - Implement drawFireworks() to render particle effects
+  - Update rendering to support multiple levels with different visual styles
+  - _Requirements: 6.1, 6.2, 7.3, 8.3, 8.4, 8.5, 9.2, 9.3_
+
+- [ ] 15. Implement fireworks particle system
+  - Create particle generation logic for fireworks
+  - Implement particle physics (velocity, gravity, fade)
+  - Create multiple bursts at different positions
+  - Update particles each frame
+  - Remove dead particles
+  - _Requirements: 8.3_
+
+- [ ] 16. Update game engine for level progression
+  - Add level management to GameEngine
+  - Implement transitionToLevel() method
+  - Update initialization to create level 1 with trapdoor
+  - Update checkCollisions() to detect trapdoor overlap and Enter key
+  - Handle level transition from level 1 to level 2
+  - Initialize chalice on level 2
+  - _Requirements: 7.1, 7.2, 7.4, 8.1_
+
+- [ ] 17. Implement win condition logic
+  - Add win condition checking to game loop
+  - Trigger win state when ghost touches chalice
+  - Initialize fireworks particles on win
+  - Update game state to 'won'
+  - Stop normal gameplay when won
+  - _Requirements: 8.2, 8.3, 8.4_
+
+- [ ] 18. Implement lose condition logic
+  - Add boundary checking to game loop
+  - Trigger lose state when ghost moves outside iceberg bounds
+  - Update game state to 'lost'
+  - Stop normal gameplay when lost
+  - Display game over screen
+  - _Requirements: 9.1, 9.2, 9.3, 9.5_
+
+- [ ] 19. Update character movement for iceberg boundaries
+  - Modify GhostCharacter to use iceberg bounds instead of canvas bounds
+  - Update boundary checking to use level-specific iceberg width
+  - Ensure character can't move outside iceberg shape
+  - _Requirements: 9.1, 9.4_
+
+- [ ] 20. Checkpoint - Test new features
+  - Ensure all tests pass
+  - Manually test level 1 gameplay
+  - Manually test trapdoor interaction
+  - Manually test level 2 gameplay
+  - Manually test chalice collection and win screen
+  - Manually test boundary violations and lose screen
+  - Ask the user if questions arise
+
+- [ ] 21. Polish and refinements
+  - Adjust visual styling for better appearance
+  - Fine-tune collision detection tolerances
+  - Optimize fireworks particle count for performance
+  - Add visual feedback for trapdoor activation
+  - Ensure smooth level transitions
+  - Test on different screen sizes
+  - _Requirements: All_
+
+- [ ]* 21.1 Write unit tests for level transitions
+  - Test level initialization
+  - Test trapdoor and chalice placement
+  - Test game state transitions
+  - _Requirements: 7.1, 7.2, 8.1_
+
+- [ ]* 21.2 Write unit tests for win/lose conditions
+  - Test win condition trigger
+  - Test lose condition trigger
+  - Test game state after win/lose
+  - _Requirements: 8.2, 9.1_
+
+- [ ] 22. Final checkpoint - Ensure all tests pass
+  - Ensure all tests pass, ask the user if questions arise.

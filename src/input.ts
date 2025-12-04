@@ -5,17 +5,19 @@
 
 /**
  * InputHandler class manages keyboard input state and event listeners
- * Tracks arrow key presses and handles simultaneous key press priority
+ * Tracks arrow key presses and Enter key, handles simultaneous key press priority
  */
 export class InputHandler {
   private keys: Map<string, boolean>;
   private activeDirection: 'left' | 'right' | null;
+  private enterPressed: boolean;
   private keydownHandler: (event: KeyboardEvent) => void;
   private keyupHandler: (event: KeyboardEvent) => void;
 
   constructor() {
     this.keys = new Map<string, boolean>();
     this.activeDirection = null;
+    this.enterPressed = false;
     
     // Bind event handlers to maintain 'this' context
     this.keydownHandler = this.handleKeyDown.bind(this);
@@ -42,11 +44,12 @@ export class InputHandler {
   /**
    * Handle keydown events
    * Requirement 4.3: Process most recent directional input for simultaneous presses
+   * Requirement 7.2: Capture Enter key for trapdoor interaction
    */
   private handleKeyDown(event: KeyboardEvent): void {
     const key = event.key;
     
-    // Only process arrow keys
+    // Process arrow keys
     if (key === 'ArrowLeft' || key === 'ArrowRight') {
       // Prevent default browser behavior (scrolling)
       event.preventDefault();
@@ -62,6 +65,12 @@ export class InputHandler {
           this.activeDirection = 'right';
         }
       }
+    }
+    
+    // Process Enter key (Requirement 7.2)
+    if (key === 'Enter') {
+      event.preventDefault();
+      this.enterPressed = true;
     }
   }
 
@@ -92,6 +101,12 @@ export class InputHandler {
         }
       }
     }
+    
+    // Reset Enter key on release
+    if (key === 'Enter') {
+      event.preventDefault();
+      this.enterPressed = false;
+    }
   }
 
   /**
@@ -112,6 +127,24 @@ export class InputHandler {
    */
   getActiveDirection(): 'left' | 'right' | null {
     return this.activeDirection;
+  }
+
+  /**
+   * Check if Enter key is currently pressed
+   * Requirement 7.2: Detect Enter key for trapdoor interaction
+   * 
+   * @returns true if Enter is pressed
+   */
+  isEnterPressed(): boolean {
+    return this.enterPressed;
+  }
+
+  /**
+   * Consume the Enter key press (reset it after use)
+   * Useful to prevent multiple triggers from a single press
+   */
+  consumeEnter(): void {
+    this.enterPressed = false;
   }
 
   /**
