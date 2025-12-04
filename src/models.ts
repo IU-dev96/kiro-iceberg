@@ -98,6 +98,7 @@ export class GhostCharacter {
   height: number;
   velocity: number;
   currentLevel: number;
+  facingDirection: 'left' | 'right';
   private canvasWidth: number;
 
   constructor(
@@ -116,6 +117,7 @@ export class GhostCharacter {
     this.velocity = velocity;
     this.canvasWidth = canvasWidth;
     this.currentLevel = currentLevel;
+    this.facingDirection = 'right'; // Default facing direction (Requirement 1.4)
   }
 
   /**
@@ -127,6 +129,9 @@ export class GhostCharacter {
    * @param deltaTime - Time elapsed since last frame in seconds
    */
   move(direction: 'left' | 'right', deltaTime: number): void {
+    // Update facing direction (Requirements 1.1, 1.2, 2.2)
+    this.facingDirection = direction;
+    
     const distance = this.velocity * deltaTime;
 
     if (direction === 'left') {
@@ -185,6 +190,16 @@ export class GhostCharacter {
     this.canvasWidth = newWidth;
     // Ensure character stays within new bounds
     this.x = Math.min(this.x, this.canvasWidth - this.width);
+  }
+
+  /**
+   * Get the current facing direction of the character
+   * Requirement 2.3: Expose facing direction through getter method
+   * 
+   * @returns The current facing direction ('left' or 'right')
+   */
+  getFacingDirection(): 'left' | 'right' {
+    return this.facingDirection;
   }
 }
 
