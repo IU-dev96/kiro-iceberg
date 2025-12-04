@@ -11,6 +11,8 @@ import { CollisionDetector } from './collision';
 import { FireworksSystem } from './fireworks';
 import { PhysicsSystem } from './physics';
 import { PHYSICS_CONSTANTS } from './levelConfig';
+import { TimeoutManager } from './timeoutManager';
+import { TitanicAnimationSystem } from './titanicAnimation';
 
 /**
  * GameEngine class manages the game loop and coordinates all game systems
@@ -26,6 +28,8 @@ export class GameEngine {
   private collisionDetector: CollisionDetector;
   private fireworksSystem: FireworksSystem;
   private physicsSystem: PhysicsSystem;
+  private timeoutManager: TimeoutManager;
+  private titanicAnimationSystem: TitanicAnimationSystem;
   
   private gameStatus: GameStatus;
   private isRunning: boolean;
@@ -55,6 +59,8 @@ export class GameEngine {
     this.collisionDetector = new CollisionDetector();
     this.fireworksSystem = new FireworksSystem(canvas.width, canvas.height);
     this.physicsSystem = new PhysicsSystem();
+    this.timeoutManager = new TimeoutManager(5); // 5 second timeout
+    this.titanicAnimationSystem = new TitanicAnimationSystem(canvas.width, canvas.height);
 
     // Initialize game state
     this.gameStatus = 'playing';
@@ -123,6 +129,10 @@ export class GameEngine {
       this.character.velocityY = 0;
       this.character.isJumping = false;
       this.character.isOnGround = true;
+
+      // Start timeout timer for level 0
+      // Requirement 1.1: Initialize and start timeout timer
+      this.timeoutManager.start();
     } else {
       // Levels 1-6: Platformer gameplay
       // Generate obstacles for this level (Requirement 3.1, 5.3)
@@ -162,6 +172,12 @@ export class GameEngine {
     // Clamp level to valid range [1, 6]
     const nextLevel = Math.max(1, Math.min(6, level));
     
+    // Stop timeout timer when leaving level 0
+    // Requirement 5.1: Cancel timer when game starts
+    if (this.currentLevel === 0 && nextLevel > 0) {
+      this.timeoutManager.stop();
+    }
+    
     this.gameStatus = 'transitioning';
     
     // Small delay for transition effect
@@ -186,6 +202,27 @@ export class GameEngine {
    */
   private triggerLose(): void {
     this.gameStatus = 'lost';
+  }
+
+  /**
+   * Handle timeout trigger
+   * Requirements: 1.3, 2.1: Start timeout animation sequence
+   */
+  private handleTimeout(): void {
+    this.gameStatus = 'timeout-animating';
+    this.titanicAnimationSystem.start();
+  }
+
+  /**
+   * Restart game after timeout
+   * Requirements: 4.2, 4.3, 4.4: Reset game to initial state
+   */
+  private restartFromTimeout(): void {
+    this.gameStatus = 'playing';
+    this.timeoutManager.reset();
+    this.titanicAnimationSystem.reset();
+    this.initializeLevel(0);
+    this.timeoutManager.start();
   }
 
   /**
@@ -270,6 +307,14 @@ export class GameEngine {
           creature.update(deltaTime, this.canvas.width);
         }
 
+        // Update timeout timer
+        // Requirement 1.2, 1.3: Update timer and check for timeout
+        const timedOut = this.timeoutManager.update(deltaTime);
+        if (timedOut) {
+          this.handleTimeout();
+          return;
+        }
+
         // Check door interaction to start game
         if (this.door) {
           const nearDoor = this.collisionDetector.checkDoorOverlap(this.character, this.door);
@@ -309,6 +354,23 @@ export class GameEngine {
     } else if (this.gameStatus === 'won') {
       // Update fireworks
       this.fireworksSystem.update(deltaTime);
+    } else if (this.gameStatus === 'timeout-animating') {
+      // Update timeout animation
+      // Requirement 2.1, 2.2, 2.3, 2.4: Update animation stages
+      this.titanicAnimationSystem.update(deltaTime);
+
+      // Check if animation is complete
+      // Requirement 2.5: Transition to game over when animation completes
+      if (this.titanicAnimationSystem.isAnimationComplete()) {
+        this.gameStatus = 'timeout-gameover';
+      }
+    } else if (this.gameStatus === 'timeout-gameover') {
+      // Handle restart input
+      // Requirement 4.2: Check for Enter key to restart
+      if (this.inputHandler.isEnterPressed()) {
+        this.inputHandler.consumeEnter();
+        this.restartFromTimeout();
+      }
     }
   }
 
@@ -375,6 +437,11 @@ export class GameEngine {
       // Draw character
       this.renderer.drawCharacter(this.context, this.character);
 
+      // Draw countdown timer
+      // Requirement 1.2: Display remaining time
+      const timeRemaining = this.timeoutManager.getTimeRemaining();
+      this.renderer.drawCountdown(this.context, timeRemaining);
+
       // Draw welcome text at bottom
       this.context.save();
       const bannerY = this.canvas.height - 120;
@@ -431,7 +498,60 @@ export class GameEngine {
       this.renderer.drawWinScreen(this.context);
     } else if (this.gameStatus === 'lost') {
       this.renderer.drawLoseScreen(this.context);
+    } else if (this.gameStatus === 'timeout-animating') {
+      // Render timeout animation
+      // Requirements: 2.1, 2.2, 2.3, 2.4
+      this.renderTimeoutAnimation();
+    } else if (this.gameStatus === 'timeout-gameover') {
+      // Render timeout game over screen
+      // Requirements: 3.2, 4.1
+      this.renderer.drawTimeoutGameOver(this.context);
     }
+  }
+
+  /**
+   * Render the timeout animation based on current stage
+   * Requirements: 2.1, 2.2, 2.3, 2.4
+   */
+  private renderTimeoutAnimation(): void {
+    const currentStage = this.titanicAnimationSystem.getCurrentStage();
+    
+    if (!currentStage) {
+      return;
+    }
+
+    // Draw base scene
+    this.renderer.drawBackground(this.context, 1);
+    this.renderer.drawSeaCreatures(this.context, this.seaCreatures);
+
+    // Draw animation elements based on stage
+    const titanicPos = this.titanicAnimationSystem.getTitanicPosition();
+    const splitOffset = this.titanicAnimationSystem.getIcebergSplitOffset();
+    const ghostSinkY = this.titanicAnimationSystem.getGhostSinkY();
+
+    switch (currentStage.name) {
+      case 'titanic-approach':
+      case 'collision':
+        // Requirement 2.1, 2.2: Draw Titanic approaching/colliding
+        this.renderer.drawTitanic(this.context, titanicPos.x, titanicPos.y);
+        break;
+
+      case 'iceberg-split':
+        // Requirement 2.3: Draw split iceberg
+        this.renderer.drawTitanic(this.context, titanicPos.x, titanicPos.y);
+        this.renderer.drawSplitIceberg(this.context, splitOffset);
+        this.renderer.drawCharacter(this.context, this.character);
+        return; // Skip normal character drawing
+
+      case 'ghost-sink':
+        // Requirement 2.4: Draw sinking ghost
+        this.renderer.drawSplitIceberg(this.context, splitOffset);
+        this.renderer.drawSinkingGhost(this.context, this.character, ghostSinkY);
+        return; // Skip normal character drawing
+    }
+
+    // Draw character normally for approach/collision stages
+    this.renderer.drawCharacter(this.context, this.character);
   }
 
   /**

@@ -5,7 +5,7 @@
 /**
  * Game status enum
  */
-export type GameStatus = 'playing' | 'transitioning' | 'won' | 'lost';
+export type GameStatus = 'playing' | 'transitioning' | 'won' | 'lost' | 'timeout-animating' | 'timeout-gameover';
 
 /**
  * Represents the state of a character in the game
