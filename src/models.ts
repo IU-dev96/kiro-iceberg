@@ -50,7 +50,7 @@ export function loadFishImage(): void {
     console.warn('Failed to load fish image, using fallback rendering');
   };
   // Use local asset to avoid CORS issues
-  fishImage.src = '/assets/fish.png';
+  fishImage.src = '/assets/clownfish.png';
 }
 
 /**
