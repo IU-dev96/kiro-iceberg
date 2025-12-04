@@ -642,8 +642,8 @@ export class GameEngine {
       return;
     }
 
-    // Draw base scene
-    this.renderer.drawBackground(this.context, 1);
+    // Draw base scene - use starting area background (level 0)
+    this.renderer.drawStartingArea(this.context);
     this.renderer.drawSeaCreatures(this.context, this.seaCreatures);
 
     // Draw animation elements based on stage
@@ -653,9 +653,14 @@ export class GameEngine {
 
     switch (currentStage.name) {
       case 'titanic-approach':
-      case 'collision':
-        // Requirement 2.1, 2.2: Draw Titanic approaching/colliding
+        // Requirement 2.1: Draw Titanic approaching
         this.renderer.drawTitanic(this.context, titanicPos.x, titanicPos.y);
+        break;
+
+      case 'collision':
+        // Requirement 2.2: Draw Titanic colliding with explosion effect
+        this.renderer.drawTitanic(this.context, titanicPos.x, titanicPos.y);
+        this.renderer.drawExplosion(this.context, titanicPos.x + 50, titanicPos.y);
         break;
 
       case 'iceberg-split':

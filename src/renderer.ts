@@ -682,6 +682,50 @@ export class SceneRenderer {
   }
 
   /**
+   * Draw explosion effect at collision point
+   * Requirement 2.2: Visual effect when Titanic hits iceberg
+   * 
+   * @param context - The canvas rendering context
+   * @param x - X position of explosion center
+   * @param y - Y position of explosion center
+   */
+  drawExplosion(context: CanvasRenderingContext2D, x: number, y: number): void {
+    context.save();
+
+    // Draw multiple explosion circles with varying sizes and colors
+    const explosionColors = [
+      { color: '#FF6B35', radius: 40, alpha: 0.8 },
+      { color: '#FFA500', radius: 30, alpha: 0.7 },
+      { color: '#FFD700', radius: 20, alpha: 0.6 },
+      { color: '#FFFF00', radius: 10, alpha: 0.5 }
+    ];
+
+    explosionColors.forEach(({ color, radius, alpha }) => {
+      context.fillStyle = color;
+      context.globalAlpha = alpha;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    });
+
+    // Draw explosion particles/debris
+    context.globalAlpha = 0.9;
+    for (let i = 0; i < 12; i++) {
+      const angle = (Math.PI * 2 * i) / 12;
+      const distance = 50;
+      const particleX = x + Math.cos(angle) * distance;
+      const particleY = y + Math.sin(angle) * distance;
+      
+      context.fillStyle = i % 2 === 0 ? '#FF6B35' : '#FFD700';
+      context.beginPath();
+      context.arc(particleX, particleY, 5, 0, Math.PI * 2);
+      context.fill();
+    }
+
+    context.restore();
+  }
+
+  /**
    * Draw split iceberg
    * Requirement 2.3: Display iceberg splitting into two pieces
    * 
