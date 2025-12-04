@@ -106,8 +106,9 @@ export class GameEngine {
       
       // Create entrance door to start the game
       const waterLevel = this.canvas.height * 0.1;
-      const doorX = this.canvas.width / 2 - 30;
-      const doorY = waterLevel * 0.3; // Position door higher up
+      const randomOffset = -120 + Math.random() * (70 - (-120)); // Random between -120 and 70
+      const doorX = this.canvas.width / 2 + randomOffset;
+      const doorY = waterLevel - 80; // Position door higher up
       this.door = new Door(doorX, doorY, 60, 80);
       
       // Generate a few sea creatures for atmosphere
@@ -118,7 +119,7 @@ export class GameEngine {
 
       // Position character at top of iceberg (lower so fully visible)
       this.character.x = this.canvas.width / 2 - this.character.width / 2;
-      this.character.y = waterLevel * 0.8 - this.character.height; // Lower position
+      this.character.y = waterLevel - this.character.height; // Lower position
       this.character.velocityY = 0;
       this.character.isJumping = false;
       this.character.isOnGround = true;

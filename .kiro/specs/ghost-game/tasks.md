@@ -96,24 +96,34 @@
   - Create LevelData interface for level-specific information
   - _Requirements: 6.1, 6.2, 6.3, 7.1, 8.1, 9.1_
 
-- [ ] 11. Implement Level Manager
+- [x] 11. Implement Level Manager
   - Create LevelManager class to manage level data
   - Implement getIcebergBounds() to return bounds for each level
   - Implement iceberg width calculation (10% above water, 90% below, wider at depth)
-  - Implement generateTrapdoor() to create trapdoor at random position on floor
+  - Implement generateTrapdoor() to create trapdoor at random horizontal position within iceberg bounds at floor level, aligned with floor surface
+  - Ensure trapdoor X position is within the iceberg boundary at the floor Y level
+  - Set trapdoor Y position to align with the floor surface
   - Implement generateChalice() to create chalice at random position on level 2
   - Implement isWithinBounds() to check if character is inside iceberg
-  - _Requirements: 6.1, 6.2, 6.3, 7.1, 8.1, 9.1_
+  - _Requirements: 6.1, 6.2, 6.3, 7.1, 7.2, 8.1, 9.1_
 
 - [ ]* 11.1 Write property test for iceberg width increases with depth
   - **Property 7: Iceberg width increases with depth**
   - **Validates: Requirements 6.3**
 
+- [ ]* 11.2 Write property test for trapdoor placement within bounds
+  - **Property 8: Trapdoor placement within bounds**
+  - **Validates: Requirements 7.1**
+
+- [ ]* 11.3 Write property test for trapdoor floor alignment
+  - **Property 9: Trapdoor floor alignment**
+  - **Validates: Requirements 7.2**
+
 - [ ] 12. Update input handler for Enter key
   - Add Enter key tracking to InputHandler
   - Implement isEnterPressed() method
   - Update event handlers to capture Enter key state
-  - _Requirements: 7.2_
+  - _Requirements: 7.3_
 
 - [ ] 13. Implement collision detection system
   - Create CollisionDetector class
@@ -121,22 +131,22 @@
   - Implement checkTrapdoorOverlap() for trapdoor detection
   - Implement checkChaliceCollision() for chalice collection
   - Add getBounds() helper methods to game objects
-  - _Requirements: 7.2, 8.2, 9.1, 9.4_
+  - _Requirements: 7.3, 8.2, 9.1, 9.4_
 
 - [ ]* 13.1 Write property test for trapdoor triggers level transition
-  - **Property 8: Trapdoor triggers level transition**
-  - **Validates: Requirements 7.2**
+  - **Property 10: Trapdoor triggers level transition**
+  - **Validates: Requirements 7.3**
 
 - [ ]* 13.2 Write property test for chalice collision triggers win
-  - **Property 9: Chalice collision triggers win**
+  - **Property 11: Chalice collision triggers win**
   - **Validates: Requirements 8.2**
 
 - [ ]* 13.3 Write property test for out of bounds triggers lose
-  - **Property 10: Out of bounds triggers lose condition**
+  - **Property 12: Out of bounds triggers lose condition**
   - **Validates: Requirements 9.1**
 
 - [ ]* 13.4 Write property test for in-bounds allows movement
-  - **Property 11: In-bounds allows normal movement**
+  - **Property 13: In-bounds allows normal movement**
   - **Validates: Requirements 9.4**
 
 - [ ] 14. Update scene renderer for new elements
@@ -147,7 +157,7 @@
   - Implement drawLoseScreen() to display "Game Over" text
   - Implement drawFireworks() to render particle effects
   - Update rendering to support multiple levels with different visual styles
-  - _Requirements: 6.1, 6.2, 7.3, 8.3, 8.4, 8.5, 9.2, 9.3_
+  - _Requirements: 6.1, 6.2, 7.4, 8.3, 8.4, 8.5, 9.2, 9.3_
 
 - [ ] 15. Implement fireworks particle system
   - Create particle generation logic for fireworks
@@ -164,7 +174,7 @@
   - Update checkCollisions() to detect trapdoor overlap and Enter key
   - Handle level transition from level 1 to level 2
   - Initialize chalice on level 2
-  - _Requirements: 7.1, 7.2, 7.4, 8.1_
+  - _Requirements: 7.1, 7.2, 7.3, 7.5, 8.1_
 
 - [ ] 17. Implement win condition logic
   - Add win condition checking to game loop

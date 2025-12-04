@@ -87,10 +87,11 @@ This document specifies the requirements for "Tip of the Iceberg", a web-based i
 
 #### Acceptance Criteria
 
-1. WHEN a Game Level is initialized THEN the system SHALL place a Trapdoor at a random horizontal position on the floor
-2. WHEN the Ghost Character is positioned over the Trapdoor and the player presses Enter THEN the system SHALL move the Ghost Character to the next Game Level
-3. WHEN the Trapdoor is rendered THEN the system SHALL display it with a distinct visual appearance on the floor
-4. WHEN the Ghost Character descends through the Trapdoor THEN the system SHALL update the Game Level to the next level
+1. WHEN the first Game Level is initialized THEN the system SHALL place a Trapdoor at a random horizontal position on the floor within the Iceberg Boundary
+2. WHEN the Trapdoor is placed THEN the system SHALL align the Trapdoor with the floor surface
+3. WHEN the Ghost Character is positioned over the Trapdoor and the player presses Enter THEN the system SHALL move the Ghost Character to the next Game Level
+4. WHEN the Trapdoor is rendered THEN the system SHALL display it with a distinct visual appearance on the floor
+5. WHEN the Ghost Character descends through the Trapdoor THEN the system SHALL update the Game Level to the next level
 
 ### Requirement 8
 

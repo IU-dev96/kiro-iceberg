@@ -116,26 +116,40 @@ export class LevelManager {
 
   /**
    * Generate a trapdoor at random position on the floor
-   * Requirement 7.1: Place trapdoor at random horizontal position
+   * Requirement 7.1: Place trapdoor at random horizontal position within iceberg boundary
+   * Requirement 7.2: Align trapdoor with floor surface
    * 
    * @param level - The level number
    * @returns Trapdoor instance
    */
   generateTrapdoor(level: number): Trapdoor {
     const bounds = this.getIcebergBounds(level);
-    const floorY = bounds.bottomY - 30; // Place slightly above bottom
+    // Use the platformer ground level for consistent floor positioning
+    const floorY = PHYSICS_CONSTANTS.GROUND_Y;
     
-    // Get iceberg width at floor level
+    // Get iceberg width at floor level (Requirement 7.1)
     const { left, right } = bounds.getWidthAtY(floorY);
     
-    // Random position within safe bounds (not too close to edges)
-    const safeMargin = 100;
-    const minX = left + safeMargin;
-    const maxX = right - safeMargin - 80; // 80 is trapdoor width
+    const trapdoorWidth = 80;
+    const trapdoorHeight = 20;
+    
+    // Random position within iceberg bounds at floor level
+    // Ensure trapdoor is fully within bounds
+    const minX = left;
+    const maxX = right - trapdoorWidth;
+    
+    // Validate that there's enough space for the trapdoor
+    if (maxX < minX) {
+      // If iceberg is too narrow, center the trapdoor
+      const randomX = (left + right - trapdoorWidth) / 2;
+      // Position trapdoor so its bottom edge is at floor level (Requirement 7.2)
+      return new Trapdoor(randomX, floorY - trapdoorHeight);
+    }
     
     const randomX = minX + Math.random() * (maxX - minX);
     
-    return new Trapdoor(randomX, floorY);
+    // Position trapdoor so its bottom edge aligns with floor surface (Requirement 7.2)
+    return new Trapdoor(randomX, floorY - trapdoorHeight);
   }
 
   /**
@@ -220,9 +234,9 @@ export class LevelManager {
     const config = getLevelConfig(level);
     const groundY = PHYSICS_CONSTANTS.GROUND_Y;
     
-    // Place door at configured position, on the ground
+    // Place door standing on the ground with bottom edge aligned to ground
     const doorHeight = 80;
-    const doorY = groundY - doorHeight;
+    const doorY = groundY - doorHeight; // Position door so its bottom is at ground level
     
     return new Door(config.doorPosition.x, doorY);
   }
