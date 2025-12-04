@@ -44,7 +44,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     seaCreatureType: 'small-fish',
     seaCreatureCount: 2,
     seaCreatureSize: 20,
-    doorPosition: { x: 700, y: 470 }
+    doorPosition: { x: 1100, y: 470 }
   },
   {
     levelNumber: 2,
@@ -55,7 +55,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     seaCreatureType: 'small-fish',
     seaCreatureCount: 3,
     seaCreatureSize: 25,
-    doorPosition: { x: 700, y: 450 }
+    doorPosition: { x: 1100, y: 450 }
   },
   {
     levelNumber: 3,
@@ -66,7 +66,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     seaCreatureType: 'large-fish',
     seaCreatureCount: 3,
     seaCreatureSize: 40,
-    doorPosition: { x: 700, y: 430 }
+    doorPosition: { x: 1100, y: 430 }
   },
   {
     levelNumber: 4,
@@ -77,7 +77,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     seaCreatureType: 'large-fish',
     seaCreatureCount: 4,
     seaCreatureSize: 50,
-    doorPosition: { x: 700, y: 410 }
+    doorPosition: { x: 1100, y: 410 }
   },
   {
     levelNumber: 5,
@@ -88,7 +88,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     seaCreatureType: 'shark',
     seaCreatureCount: 4,
     seaCreatureSize: 70,
-    doorPosition: { x: 700, y: 390 }
+    doorPosition: { x: 1100, y: 390 }
   },
   {
     levelNumber: 6,
@@ -99,7 +99,7 @@ export const LEVEL_CONFIGS: LevelConfig[] = [
     seaCreatureType: 'shark',
     seaCreatureCount: 5,
     seaCreatureSize: 90,
-    doorPosition: { x: 700, y: 370 },
+    doorPosition: { x: 1100, y: 370 },
     chalicePosition: { x: 650, y: 500 }
   }
 ];

@@ -43,6 +43,14 @@ export class GameEngine {
   private seaCreatures: SeaCreature[];
   private lastFrameTime: number;
   private animationFrameId: number | null;
+  
+  // Camera system for scrolling
+  private cameraX: number;
+  private cameraY: number;
+  
+  // Falling/drowning state
+  private isFalling: boolean;
+  private fallingTimer: number;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
@@ -76,6 +84,14 @@ export class GameEngine {
     this.seaCreatures = [];
     this.lastFrameTime = 0;
     this.animationFrameId = null;
+    
+    // Initialize camera
+    this.cameraX = 0;
+    this.cameraY = 0;
+    
+    // Initialize falling state
+    this.isFalling = false;
+    this.fallingTimer = 0;
 
     // Initialize character for starting area (top of iceberg)
     const characterHeight = 40;
@@ -232,6 +248,31 @@ export class GameEngine {
   }
 
   /**
+   * Update camera to follow character
+   */
+  private updateCamera(): void {
+    if (this.currentLevel === 0) {
+      // No camera movement in starting area
+      this.cameraX = 0;
+      this.cameraY = 0;
+      return;
+    }
+
+    // Horizontal camera follow - keep character centered
+    const targetX = this.character.x - this.canvas.width / 2 + this.character.width / 2;
+    const smoothing = 0.15;
+    this.cameraX += (targetX - this.cameraX) * smoothing;
+    
+    // Clamp camera to prevent showing beyond level bounds
+    const platformWidth = 1200; // Platform width
+    const maxCameraX = platformWidth - this.canvas.width; // 400px max (1200 - 800)
+    this.cameraX = Math.max(0, Math.min(this.cameraX, maxCameraX));
+
+    // Vertical camera - keep ground visible
+    this.cameraY = 0;
+  }
+
+  /**
    * Start the game engine
    * Requirement 5.1: Load and display the game
    * Requirement 5.2: Set up the Game Canvas
@@ -296,6 +337,24 @@ export class GameEngine {
     // Update input handler
     this.inputHandler.update();
 
+    // Handle falling state - ghost sinks into water
+    if (this.isFalling) {
+      this.fallingTimer += deltaTime;
+      
+      // Make ghost sink down into water
+      this.character.y += 200 * deltaTime; // Sink at 200 pixels per second
+      
+      // Rotate slightly while sinking for effect
+      this.character.updateRotationOnly(deltaTime);
+      
+      // After 2 seconds of sinking, trigger game over
+      if (this.fallingTimer > 2.0) {
+        this.isFalling = false;
+        this.triggerLose();
+      }
+      return;
+    }
+
     // Only update gameplay if in playing state
     if (this.gameStatus === 'playing') {
       if (this.currentLevel === 0) {
@@ -323,6 +382,17 @@ export class GameEngine {
         if (timedOut) {
           this.handleTimeout();
           return;
+        }
+
+        // Check if character left the starting area (fell off edges)
+        const icebergLeft = this.canvas.width * 0.25;
+        const icebergRight = this.canvas.width * 0.75;
+        
+        if (this.character.x < icebergLeft || this.character.x + this.character.width > icebergRight) {
+          if (!this.isFalling) {
+            this.isFalling = true;
+            this.fallingTimer = 0;
+          }
         }
 
         // Check door interaction to start game
@@ -359,6 +429,8 @@ export class GameEngine {
 
         // Update sparkle system (Requirements: 1.1, 1.2, 5.1, 5.5)
         this.sparkleSystem.update(this.character, deltaTime, isMoving);
+        // Update camera to follow character
+        this.updateCamera();
 
         // Update sea creatures
         for (const creature of this.seaCreatures) {
@@ -420,9 +492,23 @@ export class GameEngine {
       }
     }
 
-    // Check if character fell off screen (lose condition)
-    if (this.character.y > this.canvas.height) {
-      this.triggerLose();
+    // Check iceberg boundaries - the playable area
+    const icebergLeft = 0;
+    const icebergRight = 1200; // Platform width
+    const charRight = this.character.x + this.character.width;
+
+    // Check if character left iceberg horizontally (fell into water)
+    if (this.character.x < icebergLeft || charRight > icebergRight) {
+      if (!this.isFalling) {
+        this.isFalling = true;
+        this.fallingTimer = 0;
+      }
+    }
+
+    // Check if character fell below ground (fell into water)
+    if (this.character.y > PHYSICS_CONSTANTS.GROUND_Y + 100 && !this.isFalling) {
+      this.isFalling = true;
+      this.fallingTimer = 0;
     }
   }
 
@@ -436,8 +522,8 @@ export class GameEngine {
     this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
     if (this.currentLevel === 0) {
-      // Starting area: Show full iceberg view
-      this.renderer.drawBackground(this.context, 1); // Draw as level 1 to show full iceberg
+      // Starting area: Draw narrow iceberg at top
+      this.renderer.drawStartingArea(this.context);
       
       // Draw sea creatures in background
       this.renderer.drawSeaCreatures(this.context, this.seaCreatures);
@@ -476,7 +562,12 @@ export class GameEngine {
       this.context.fillText('Enter the door to begin', this.canvas.width / 2, bannerY + 60);
       this.context.restore();
     } else {
-      // Game levels: Normal platformer view
+      // Game levels: Normal platformer view with camera
+      this.context.save();
+      
+      // Apply camera transformation
+      this.context.translate(-this.cameraX, -this.cameraY);
+
       // Draw background for current level
       this.renderer.drawBackground(this.context, this.currentLevel);
 
@@ -508,8 +599,38 @@ export class GameEngine {
       // Draw character
       this.renderer.drawCharacter(this.context, this.character);
 
-      // Draw level banner (Requirements 1.1, 1.3)
+      // Restore camera transformation
+      this.context.restore();
+
+      // Draw level banner (Requirements 1.1, 1.3) - UI stays fixed
       this.renderer.drawLevelBanner(this.context, this.currentLevel);
+    }
+
+    // Draw water effect when falling/sinking
+    if (this.isFalling) {
+      this.context.save();
+      
+      // Draw water splash/ripple effect around character
+      const splashAlpha = Math.max(0, 1 - this.fallingTimer / 2); // Fade out over 2 seconds
+      this.context.fillStyle = `rgba(70, 130, 180, ${splashAlpha * 0.5})`;
+      
+      // Draw ripples
+      for (let i = 0; i < 3; i++) {
+        const rippleRadius = 30 + (this.fallingTimer * 50) + (i * 20);
+        this.context.beginPath();
+        this.context.arc(
+          this.character.x + this.character.width / 2 - (this.currentLevel > 0 ? this.cameraX : 0),
+          this.character.y + this.character.height / 2,
+          rippleRadius,
+          0,
+          Math.PI * 2
+        );
+        this.context.strokeStyle = `rgba(100, 150, 200, ${splashAlpha * 0.3})`;
+        this.context.lineWidth = 3;
+        this.context.stroke();
+      }
+      
+      this.context.restore();
     }
 
     // Draw UI overlays
@@ -540,8 +661,8 @@ export class GameEngine {
       return;
     }
 
-    // Draw base scene
-    this.renderer.drawBackground(this.context, 1);
+    // Draw base scene - use starting area background (level 0)
+    this.renderer.drawStartingArea(this.context);
     this.renderer.drawSeaCreatures(this.context, this.seaCreatures);
 
     // Draw animation elements based on stage
@@ -551,9 +672,14 @@ export class GameEngine {
 
     switch (currentStage.name) {
       case 'titanic-approach':
-      case 'collision':
-        // Requirement 2.1, 2.2: Draw Titanic approaching/colliding
+        // Requirement 2.1: Draw Titanic approaching
         this.renderer.drawTitanic(this.context, titanicPos.x, titanicPos.y);
+        break;
+
+      case 'collision':
+        // Requirement 2.2: Draw Titanic colliding with explosion effect
+        this.renderer.drawTitanic(this.context, titanicPos.x, titanicPos.y);
+        this.renderer.drawExplosion(this.context, titanicPos.x + 50, titanicPos.y);
         break;
 
       case 'iceberg-split':

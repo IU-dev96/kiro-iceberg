@@ -15,36 +15,36 @@ describe('GhostCharacter', () => {
     expect(ghost.velocity).toBe(200);
   });
 
-  it('should move left and respect left boundary', () => {
+  it('should move left without boundary enforcement', () => {
     const ghost = new GhostCharacter(50, 200, 50, 60, 200, 800);
     
     // Move left by 0.1 seconds (should move 20 pixels)
     ghost.move('left', 0.1);
     expect(ghost.x).toBe(30);
     
-    // Move left again to hit boundary
-    ghost.move('left', 0.5); // Would move 100 pixels, but boundary at 0
-    expect(ghost.x).toBe(0);
+    // Move left again (boundaries are now checked by game engine)
+    ghost.move('left', 0.5); // Moves 100 pixels freely
+    expect(ghost.x).toBe(-70);
     
-    // Try to move past boundary
+    // Character can move past old boundaries (engine handles this)
     ghost.move('left', 0.1);
-    expect(ghost.x).toBe(0); // Should stay at 0
+    expect(ghost.x).toBe(-90);
   });
 
-  it('should move right and respect right boundary', () => {
+  it('should move right without boundary enforcement', () => {
     const ghost = new GhostCharacter(700, 200, 50, 60, 200, 800);
     
     // Move right by 0.1 seconds (should move 20 pixels)
     ghost.move('right', 0.1);
     expect(ghost.x).toBe(720);
     
-    // Move right again to hit boundary (max x = 800 - 50 = 750)
-    ghost.move('right', 0.5); // Would move 100 pixels, but boundary at 750
-    expect(ghost.x).toBe(750);
+    // Move right again (boundaries are now checked by game engine)
+    ghost.move('right', 0.5); // Moves 100 pixels freely
+    expect(ghost.x).toBe(820);
     
-    // Try to move past boundary
+    // Character can move past old boundaries (engine handles this)
     ghost.move('right', 0.1);
-    expect(ghost.x).toBe(750); // Should stay at 750
+    expect(ghost.x).toBe(840);
   });
 
   it('should handle zero delta time', () => {

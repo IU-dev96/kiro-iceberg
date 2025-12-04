@@ -52,48 +52,50 @@ export class SceneRenderer {
    * @param context - The canvas rendering context
    * @param level - Current game level
    */
-  drawBackground(context: CanvasRenderingContext2D, level: number): void {
+  drawBackground(context: CanvasRenderingContext2D, _level: number): void {
     const width = this.canvasWidth;
     const height = this.canvasHeight;
 
-    if (level === 1) {
-      // Level 1: Above water - but show full iceberg
-      // Sky gradient
-      const skyGradient = context.createLinearGradient(0, 0, 0, this.waterLevel);
-      skyGradient.addColorStop(0, '#87CEEB'); // Sky blue
-      skyGradient.addColorStop(1, '#B0E0E6'); // Powder blue
+    // Water gradient (underwater for all levels)
+    const waterGradient = context.createLinearGradient(0, 0, 0, height);
+    waterGradient.addColorStop(0, '#4682B4'); // Steel blue
+    waterGradient.addColorStop(0.5, '#1E3A5F'); // Dark blue
+    waterGradient.addColorStop(1, '#0F1F3F'); // Very dark blue
 
-      context.fillStyle = skyGradient;
-      context.fillRect(0, 0, width, this.waterLevel);
+    context.fillStyle = waterGradient;
+    context.fillRect(0, 0, width * 4, height); // Draw water 4x wide for scrolling
 
-      // Water gradient (for underwater portion visible at start)
-      const waterGradient = context.createLinearGradient(0, this.waterLevel, 0, height);
-      waterGradient.addColorStop(0, '#4682B4'); // Steel blue
-      waterGradient.addColorStop(0.5, '#1E3A5F'); // Dark blue
-      waterGradient.addColorStop(1, '#0F1F3F'); // Very dark blue
+    // Draw wide iceberg platform for all game levels (1-6)
+    this.drawIcebergLevel2(context, width, height);
+  }
 
-      context.fillStyle = waterGradient;
-      context.fillRect(0, this.waterLevel, width, height - this.waterLevel);
+  /**
+   * Draw starting area (level 0) with narrow iceberg at top
+   */
+  drawStartingArea(context: CanvasRenderingContext2D): void {
+    const width = this.canvasWidth;
+    const height = this.canvasHeight;
 
-      // Draw iceberg for level 1 (above water)
-      this.drawIcebergLevel1(context, width);
-      
-      // Draw underwater portion of iceberg (visible but not accessible yet)
-      this.drawIcebergLevel2(context, width, height);
-    } else {
-      // Level 2: Below water
-      // Water gradient (darker for underwater)
-      const waterGradient = context.createLinearGradient(0, this.waterLevel, 0, height);
-      waterGradient.addColorStop(0, '#4682B4'); // Steel blue
-      waterGradient.addColorStop(0.5, '#1E3A5F'); // Dark blue
-      waterGradient.addColorStop(1, '#0F1F3F'); // Very dark blue
+    // Sky gradient
+    const skyGradient = context.createLinearGradient(0, 0, 0, this.waterLevel);
+    skyGradient.addColorStop(0, '#87CEEB'); // Sky blue
+    skyGradient.addColorStop(1, '#B0E0E6'); // Powder blue
 
-      context.fillStyle = waterGradient;
-      context.fillRect(0, 0, width, height);
+    context.fillStyle = skyGradient;
+    context.fillRect(0, 0, width, this.waterLevel);
 
-      // Draw iceberg for level 2 (below water)
-      this.drawIcebergLevel2(context, width, height);
-    }
+    // Water gradient
+    const waterGradient = context.createLinearGradient(0, this.waterLevel, 0, height);
+    waterGradient.addColorStop(0, '#4682B4'); // Steel blue
+    waterGradient.addColorStop(0.5, '#1E3A5F'); // Dark blue
+    waterGradient.addColorStop(1, '#0F1F3F'); // Very dark blue
+
+    context.fillStyle = waterGradient;
+    context.fillRect(0, this.waterLevel, width, height - this.waterLevel);
+
+    // Draw narrow iceberg at top
+    this.drawIcebergLevel1(context, width);
+    this.drawIcebergLevel2Original(context, width, height);
   }
 
   /**
@@ -138,22 +140,51 @@ export class SceneRenderer {
    * @param width - Canvas width
    * @param height - Canvas height
    */
-  private drawIcebergLevel2(context: CanvasRenderingContext2D, width: number, height: number): void {
+  private drawIcebergLevel2(context: CanvasRenderingContext2D, _width: number, height: number): void {
+    const topY = this.waterLevel;
+    const bottomY = height;
+    const platformWidth = 1200;
+
+    // Main iceberg body - trapezoid from 0 to 1200 at bottom
+    context.fillStyle = 'rgba(224, 242, 247, 0.7)';
+    context.beginPath();
+    context.moveTo(200, topY); // Narrower at top (200px to 1000px = 800px wide)
+    context.lineTo(1000, topY);
+    context.lineTo(platformWidth, bottomY); // Wider at bottom (0 to 1200 = 1200px wide)
+    context.lineTo(0, bottomY);
+    context.closePath();
+    context.fill();
+
+    // Add shading on right side
+    context.fillStyle = 'rgba(184, 216, 224, 0.5)';
+    context.beginPath();
+    context.moveTo(600, topY); // Middle of top edge
+    context.lineTo(1000, topY);
+    context.lineTo(platformWidth, bottomY);
+    context.lineTo(600, bottomY);
+    context.closePath();
+    context.fill();
+  }
+
+  /**
+   * Draw original narrow iceberg for starting area
+   */
+  private drawIcebergLevel2Original(context: CanvasRenderingContext2D, width: number, height: number): void {
     const centerX = width / 2;
     const topY = this.waterLevel;
     const bottomY = height;
 
-    // Main iceberg body (wider at bottom)
-    context.fillStyle = 'rgba(224, 242, 247, 0.7)'; // Semi-transparent for underwater
+    // Main iceberg body (narrow trapezoid)
+    context.fillStyle = 'rgba(224, 242, 247, 0.7)';
     context.beginPath();
-    context.moveTo(centerX - width * 0.25, topY); // 50% width at water level
+    context.moveTo(centerX - width * 0.25, topY);
     context.lineTo(centerX + width * 0.25, topY);
-    context.lineTo(centerX + width * 0.4, bottomY); // 80% width at bottom
+    context.lineTo(centerX + width * 0.4, bottomY);
     context.lineTo(centerX - width * 0.4, bottomY);
     context.closePath();
     context.fill();
 
-    // Add shading
+    // Add shading on right side (the split/shadow effect)
     context.fillStyle = 'rgba(184, 216, 224, 0.5)';
     context.beginPath();
     context.moveTo(centerX, topY);
@@ -591,11 +622,13 @@ export class SceneRenderer {
   drawGround(context: CanvasRenderingContext2D, groundY: number): void {
     context.save();
     
+    const platformWidth = 1200; // Platform width: 1200px
+    
     context.strokeStyle = '#654321';
     context.lineWidth = 3;
     context.beginPath();
     context.moveTo(0, groundY);
-    context.lineTo(this.canvasWidth, groundY);
+    context.lineTo(platformWidth, groundY);
     context.stroke();
 
     context.restore();
@@ -645,6 +678,50 @@ export class SceneRenderer {
       context.arc(startX + i * chimneySpacing + chimneyWidth / 2, y - 55, 6, 0, Math.PI * 2);
     }
     context.fill();
+
+    context.restore();
+  }
+
+  /**
+   * Draw explosion effect at collision point
+   * Requirement 2.2: Visual effect when Titanic hits iceberg
+   * 
+   * @param context - The canvas rendering context
+   * @param x - X position of explosion center
+   * @param y - Y position of explosion center
+   */
+  drawExplosion(context: CanvasRenderingContext2D, x: number, y: number): void {
+    context.save();
+
+    // Draw multiple explosion circles with varying sizes and colors
+    const explosionColors = [
+      { color: '#FF6B35', radius: 40, alpha: 0.8 },
+      { color: '#FFA500', radius: 30, alpha: 0.7 },
+      { color: '#FFD700', radius: 20, alpha: 0.6 },
+      { color: '#FFFF00', radius: 10, alpha: 0.5 }
+    ];
+
+    explosionColors.forEach(({ color, radius, alpha }) => {
+      context.fillStyle = color;
+      context.globalAlpha = alpha;
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
+    });
+
+    // Draw explosion particles/debris
+    context.globalAlpha = 0.9;
+    for (let i = 0; i < 12; i++) {
+      const angle = (Math.PI * 2 * i) / 12;
+      const distance = 50;
+      const particleX = x + Math.cos(angle) * distance;
+      const particleY = y + Math.sin(angle) * distance;
+      
+      context.fillStyle = i % 2 === 0 ? '#FF6B35' : '#FFD700';
+      context.beginPath();
+      context.arc(particleX, particleY, 5, 0, Math.PI * 2);
+      context.fill();
+    }
 
     context.restore();
   }
