@@ -170,15 +170,15 @@ export class GhostCharacter {
     const distance = this.velocity * deltaTime;
 
     if (direction === 'left') {
-      // Move left with boundary checking (Requirement 2.3)
-      this.x = Math.max(0, this.x - distance);
+      // Move left - allow free movement, boundary checking in game engine
+      this.x = this.x - distance;
     } else if (direction === 'right') {
-      // Move right with boundary checking (Requirement 3.3)
-      this.x = Math.min(this.canvasWidth - this.width, this.x + distance);
+      // Move right - allow free movement, boundary checking in game engine
+      this.x = this.x + distance;
     }
     
-    // Note: Iceberg boundary checking is handled by CollisionDetector
-    // This basic boundary checking prevents moving off canvas entirely
+    // Note: Iceberg boundary checking is handled by game engine
+    // Character can move freely across the extended platform
   }
 
   /**
