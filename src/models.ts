@@ -27,8 +27,8 @@ export function loadSharkImage(): void {
   sharkImage.onerror = () => {
     console.warn('Failed to load shark image, using fallback rendering');
   };
-  // Use local asset to avoid CORS issues
-  sharkImage.src = '/assets/shark.png';
+  // Use relative path from the HTML document location
+  sharkImage.src = './assets/shark.png';
 }
 
 /**
@@ -45,8 +45,8 @@ export function loadFishImage(): void {
   fishImage.onerror = () => {
     console.warn('Failed to load fish image, using fallback rendering');
   };
-  // Use local asset to avoid CORS issues
-  fishImage.src = '/assets/clownfish.png';
+  // Use relative path from the HTML document location
+  fishImage.src = './assets/clownfish.png';
 }
 
 /**
