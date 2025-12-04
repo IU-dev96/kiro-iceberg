@@ -4,6 +4,7 @@
  */
 
 import { GameEngine } from './engine';
+import { loadSharkImage } from './models';
 
 /**
  * Initialize and start the game
@@ -21,6 +22,10 @@ function initGame(): void {
   }
 
   try {
+    // Load shark image asynchronously (non-blocking)
+    // Requirements: 1.1, 2.5
+    loadSharkImage();
+    
     // Create and start game engine
     const game = new GameEngine(canvas);
     game.start();

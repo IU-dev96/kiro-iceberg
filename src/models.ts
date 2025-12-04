@@ -3,6 +3,34 @@
  */
 
 /**
+ * Shark image loading infrastructure
+ * Module-level cache for shark sprite image
+ */
+let sharkImage: HTMLImageElement | null = null;
+let sharkImageLoaded: boolean = false;
+let sharkImageError: boolean = false;
+
+/**
+ * Load the shark image sprite from remote URL
+ * This function is idempotent - calling it multiple times is safe
+ * Requirements: 1.1, 1.5
+ */
+export function loadSharkImage(): void {
+  if (sharkImage) return; // Already loading or loaded
+  
+  sharkImage = new Image();
+  sharkImage.onload = () => {
+    sharkImageLoaded = true;
+  };
+  sharkImage.onerror = () => {
+    sharkImageError = true;
+    console.warn('Failed to load shark image, using fallback rendering');
+  };
+  // Use local asset to avoid CORS issues
+  sharkImage.src = '/assets/shark.png';
+}
+
+/**
  * Game status enum
  */
 export type GameStatus = 'playing' | 'transitioning' | 'won' | 'lost' | 'timeout-animating' | 'timeout-gameover';
@@ -391,11 +419,28 @@ export class SeaCreature {
 
   /**
    * Draw the sea creature
-   * Simple shape representation for fish and sharks
+   * Uses image rendering for sharks (when loaded), geometric shapes otherwise
+   * Requirements: 2.1, 2.2
    * 
    * @param context - The canvas rendering context
    */
   draw(context: CanvasRenderingContext2D): void {
+    // For sharks, try to use image rendering
+    if (this.type === 'shark' && sharkImageLoaded && sharkImage) {
+      this.drawSharkImage(context);
+    } else {
+      // Fallback to geometric rendering
+      this.drawGeometric(context);
+    }
+  }
+
+  /**
+   * Draw sea creature using geometric shapes
+   * Used for fish and as fallback for sharks
+   * 
+   * @param context - The canvas rendering context
+   */
+  private drawGeometric(context: CanvasRenderingContext2D): void {
     context.save();
 
     // Set color based on type
@@ -447,6 +492,31 @@ export class SeaCreature {
     context.closePath();
     context.fill();
 
+    context.restore();
+  }
+
+  /**
+   * Draw shark using image sprite with direction-aware flipping
+   * Requirements: 1.2, 1.3, 1.4, 2.3, 2.4
+   * 
+   * @param context - The canvas rendering context
+   */
+  private drawSharkImage(context: CanvasRenderingContext2D): void {
+    context.save();
+    
+    // Apply horizontal flip for right-facing sharks
+    if (this.direction === 'right') {
+      // Translate to the right edge of where the shark should be
+      context.translate(this.x + this.width, this.y);
+      // Flip horizontally
+      context.scale(-1, 1);
+      // Draw at origin (0, 0) since we've already translated
+      context.drawImage(sharkImage!, 0, 0, this.width, this.height);
+    } else {
+      // Left-facing (original orientation)
+      context.drawImage(sharkImage!, this.x, this.y, this.width, this.height);
+    }
+    
     context.restore();
   }
 }
